@@ -64,9 +64,11 @@ function App() {
   return (
     <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
       <AppContainer>
+        {/* 
         <MockBanner>
           현재 Mock 데이터로 실행 중입니다. 실제 API 서버가 연결되어 있지 않습니다.
         </MockBanner>
+        */}
         <Router>
           <Routes>
             <Route 
