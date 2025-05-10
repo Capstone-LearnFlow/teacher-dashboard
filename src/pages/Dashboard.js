@@ -194,6 +194,18 @@ const AssignmentDate = styled.span`
   color: #6c757d;
 `;
 
+const AssignmentPhase = styled.span`
+  display: flex;
+  align-items: center;
+  color: #6c757d;
+  font-weight: 600;
+  
+  &:before {
+    content: '🔄';
+    margin-right: 0.25rem;
+  }
+`;
+
 const LoadingMessage = styled.div`
   text-align: center;
   padding: 2rem;
