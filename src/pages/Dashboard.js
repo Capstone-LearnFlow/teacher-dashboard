@@ -73,9 +73,11 @@ const Dashboard = () => {
                   <AssignmentStudents>
                     학생 {assignment.studentCount || assignment.student_count}명
                   </AssignmentStudents>
+                  {/*}
                   <AssignmentDate>
                     {formatDate(assignment.createdAt || assignment.created_at)}
                   </AssignmentDate>
+                  */}
                   <AssignmentPhase>
                     현재 단계: {assignment.currentPhase || 1}
                   </AssignmentPhase>
