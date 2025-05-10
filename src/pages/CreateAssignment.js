@@ -55,11 +55,30 @@ const CreateAssignment = () => {
       try {
         setLoading(true);
         const response = await teacherAPI.getStudents();
+        console.log('Student API response:', response);
+        
+        // Handle the API response format with data array
         if (response && Array.isArray(response)) {
+          console.log('Setting students array:', response);
           setStudents(response);
+        } else if (response && response.data && Array.isArray(response.data)) {
+          // For API response in format {"data":[{"id":1,"number":"0001","name":"배영경"}],"status":"success"}
+          console.log('Setting students from response.data:', response.data);
+          setStudents(response.data);
         } else {
           console.error('Unexpected students data format:', response);
           setFormError('학생 데이터 형식이 올바르지 않습니다.');
+          
+          // For testing, use mock data if API fails
+          if (process.env.NODE_ENV === 'development') {
+            const mockStudents = [
+              { id: 1, name: "배영경", number: "0001" },
+              { id: 2, name: "김민준", number: "0002" },
+              { id: 3, name: "이서연", number: "0003" }
+            ];
+            console.log('Using mock student data for dev testing');
+            setStudents(mockStudents);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch students:', error);
@@ -524,7 +543,9 @@ const PageHeader = styled.div`
 `;
 
 const FormContainer = styled.div`
-  margin: 1.5rem 0 3rem;
+  margin: 1.5rem auto 3rem;
+  width: 100%;
+  max-width: 900px;
 `;
 
 const FormCard = styled.div`
@@ -533,7 +554,6 @@ const FormCard = styled.div`
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   padding: 2rem;
   width: 100%;
-  max-width: 800px;
   margin: 0 auto;
   
   @media (max-width: 576px) {
