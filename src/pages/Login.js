@@ -28,20 +28,10 @@ const Login = () => {
       const response = await authAPI.login(number);
       
       if (response.status === 'success') {
-        // Parse user info from cookie
-        const cookies = document.cookie.split(';').map(cookie => cookie.trim());
-        const userCookie = cookies.find(cookie => cookie.startsWith('user='));
-        
-        if (userCookie) {
-          const userValue = userCookie.substring(5); // remove 'user='
-          try {
-            const userData = JSON.parse(decodeURIComponent(userValue));
-            login(userData);
-            navigate('/dashboard');
-          } catch (e) {
-            console.error('Failed to parse user cookie:', e);
-            setError('로그인 중 오류가 발생했습니다.');
-          }
+        // Use user data directly from the response
+        if (response.data) {
+          login(response.data);
+          navigate('/dashboard');
         } else {
           setError('로그인 중 오류가 발생했습니다.');
         }
