@@ -576,4 +576,86 @@ const LoadingMessage = styled.div`
   font-size: 1.125rem;
 `;
 
+// Date-related styled components
+const PhaseSection = styled.div`
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+`;
+
+const PhaseSectionTitle = styled.h3`
+  font-size: 1rem;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 1rem;
+`;
+
+const DateTimeGroup = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  
+  @media (max-width: 576px) {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+`;
+
+const DateInputGroup = styled.div`
+  flex: 2;
+`;
+
+const TimeInputGroup = styled.div`
+  flex: 1;
+`;
+
+const Label = styled.label`
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #495057;
+  display: block;
+`;
+
+const Required = styled.span`
+  color: #e63946;
+  margin-left: 4px;
+`;
+
+const DateInput = styled.input`
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  
+  &:focus {
+    border-color: #4361ee;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.25);
+  }
+`;
+
+const TimeInput = styled.input`
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  
+  &:focus {
+    border-color: #4361ee;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.25);
+  }
+`;
+
+const ErrorText = styled.p`
+  color: #e63946;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+`;
+
 export default CreateAssignment;
