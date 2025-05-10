@@ -1,5 +1,6 @@
 // API service connecting to the real API server
-const API_BASE_URL = 'http://100.65.217.64:8080/api';
+// Using relative path with proxy configuration
+const API_BASE_URL = '/api';
 
 // Authentication API
 export const authAPI = {
