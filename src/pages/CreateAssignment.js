@@ -55,8 +55,11 @@ const CreateAssignment = () => {
       try {
         setLoading(true);
         const response = await teacherAPI.getStudents();
-        if (response && response.students) {
-          setStudents(response.students);
+        if (response && Array.isArray(response)) {
+          setStudents(response);
+        } else {
+          console.error('Unexpected students data format:', response);
+          setFormError('학생 데이터 형식이 올바르지 않습니다.');
         }
       } catch (error) {
         console.error('Failed to fetch students:', error);
@@ -529,6 +532,9 @@ const FormCard = styled.div`
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   padding: 2rem;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
   
   @media (max-width: 576px) {
     padding: 1.5rem;
@@ -539,6 +545,7 @@ const Form = styled.form`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  width: 100%;
 `;
 
 const FormGroup = styled.div`
@@ -582,6 +589,7 @@ const PhaseSection = styled.div`
   border-radius: 8px;
   padding: 1.25rem;
   margin-bottom: 1rem;
+  width: 100%;
 `;
 
 const PhaseSectionTitle = styled.h3`
