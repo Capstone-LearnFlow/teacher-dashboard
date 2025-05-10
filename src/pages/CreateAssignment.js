@@ -20,7 +20,21 @@ const CreateAssignment = () => {
     subject: '',
     chapter: '',
     topic: '',
-    student_ids: []
+    student_ids: [],
+    phases: {
+      phase2: {
+        startDate: '',
+        startTime: '00:00',
+        endDate: '',
+        endTime: '23:59'
+      },
+      phase3: {
+        startDate: '',
+        startTime: '00:00',
+        endDate: '',
+        endTime: '23:59'
+      }
+    }
   });
   
   // Form validation errors
@@ -28,7 +42,11 @@ const CreateAssignment = () => {
     subject: '',
     chapter: '',
     topic: '',
-    student_ids: ''
+    student_ids: '',
+    phase2Start: '',
+    phase2End: '',
+    phase3Start: '',
+    phase3End: ''
   });
 
   // Fetch students on component mount
