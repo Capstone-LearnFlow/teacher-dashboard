@@ -71,17 +71,43 @@ const CreateAssignment = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
     
-    // Clear error when user types
-    if (errors[name]) {
-      setErrors({
-        ...errors,
-        [name]: ''
+    // Handle phase date and time inputs
+    if (name.startsWith('phase')) {
+      const [phase, field] = name.split('_');
+      setFormData({
+        ...formData,
+        phases: {
+          ...formData.phases,
+          [phase]: {
+            ...formData.phases[phase],
+            [field]: value
+          }
+        }
       });
+      
+      // Clear related error
+      const errorField = field.includes('start') ? `${phase}Start` : `${phase}End`;
+      if (errors[errorField]) {
+        setErrors({
+          ...errors,
+          [errorField]: ''
+        });
+      }
+    } else {
+      // Handle regular inputs
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+      
+      // Clear error when user types
+      if (errors[name]) {
+        setErrors({
+          ...errors,
+          [name]: ''
+        });
+      }
     }
   };
 
@@ -124,6 +150,60 @@ const CreateAssignment = () => {
       isValid = false;
     }
     
+    // Validate phase 2 dates
+    if (!formData.phases.phase2.startDate) {
+      newErrors.phase2Start = '주제 탐구 시작일을 입력해주세요.';
+      isValid = false;
+    }
+    
+    if (!formData.phases.phase2.endDate) {
+      newErrors.phase2End = '주제 탐구 마감일을 입력해주세요.';
+      isValid = false;
+    }
+    
+    // Validate phase 3 dates
+    if (!formData.phases.phase3.startDate) {
+      newErrors.phase3Start = '팀별 토의 시작일을 입력해주세요.';
+      isValid = false;
+    }
+    
+    if (!formData.phases.phase3.endDate) {
+      newErrors.phase3End = '팀별 토의 마감일을 입력해주세요.';
+      isValid = false;
+    }
+    
+    // Check if phase dates are in correct order
+    if (formData.phases.phase2.startDate && formData.phases.phase2.endDate) {
+      const phase2Start = new Date(`${formData.phases.phase2.startDate}T${formData.phases.phase2.startTime}`);
+      const phase2End = new Date(`${formData.phases.phase2.endDate}T${formData.phases.phase2.endTime}`);
+      
+      if (phase2End < phase2Start) {
+        newErrors.phase2End = '마감일은 시작일 이후여야 합니다.';
+        isValid = false;
+      }
+    }
+    
+    if (formData.phases.phase3.startDate && formData.phases.phase3.endDate) {
+      const phase3Start = new Date(`${formData.phases.phase3.startDate}T${formData.phases.phase3.startTime}`);
+      const phase3End = new Date(`${formData.phases.phase3.endDate}T${formData.phases.phase3.endTime}`);
+      
+      if (phase3End < phase3Start) {
+        newErrors.phase3End = '마감일은 시작일 이후여야 합니다.';
+        isValid = false;
+      }
+    }
+    
+    // Check if phase 3 starts after phase 2 ends
+    if (formData.phases.phase2.endDate && formData.phases.phase3.startDate) {
+      const phase2End = new Date(`${formData.phases.phase2.endDate}T${formData.phases.phase2.endTime}`);
+      const phase3Start = new Date(`${formData.phases.phase3.startDate}T${formData.phases.phase3.startTime}`);
+      
+      if (phase3Start < phase2End) {
+        newErrors.phase3Start = '팀별 토의는 주제 탐구 이후에 시작해야 합니다.';
+        isValid = false;
+      }
+    }
+    
     setErrors(newErrors);
     return isValid;
   };
@@ -139,7 +219,30 @@ const CreateAssignment = () => {
     setFormError('');
     
     try {
-      const response = await teacherAPI.createAssignment(formData);
+      // Prepare phase data for API
+      const phases = [
+        {
+          phaseNumber: 2,
+          startDate: `${formData.phases.phase2.startDate}T${formData.phases.phase2.startTime}:00`,
+          endDate: `${formData.phases.phase2.endDate}T${formData.phases.phase2.endTime}:59`
+        },
+        {
+          phaseNumber: 3,
+          startDate: `${formData.phases.phase3.startDate}T${formData.phases.phase3.startTime}:00`,
+          endDate: `${formData.phases.phase3.endDate}T${formData.phases.phase3.endTime}:59`
+        }
+      ];
+      
+      // Create the submission data object
+      const submissionData = {
+        subject: formData.subject,
+        chapter: formData.chapter,
+        topic: formData.topic,
+        student_ids: formData.student_ids,
+        phases: phases
+      };
+      
+      const response = await teacherAPI.createAssignment(submissionData);
       if (response && response.assignment_id) {
         setSuccess(true);
         // Reset form after successful submission
@@ -147,7 +250,21 @@ const CreateAssignment = () => {
           subject: '',
           chapter: '',
           topic: '',
-          student_ids: []
+          student_ids: [],
+          phases: {
+            phase2: {
+              startDate: '',
+              startTime: '00:00',
+              endDate: '',
+              endTime: '23:59'
+            },
+            phase3: {
+              startDate: '',
+              startTime: '00:00',
+              endDate: '',
+              endTime: '23:59'
+            }
+          }
         });
         
         // Redirect to dashboard after a short delay
