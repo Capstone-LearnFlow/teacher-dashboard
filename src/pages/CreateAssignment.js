@@ -308,7 +308,7 @@ const CreateAssignment = () => {
     <PageContainer>
       <Header />
       
-      <main className="container">
+      <MainContainer>
         <PageHeader>
           <h1>새 과제 생성</h1>
           <Button secondary onClick={() => navigate('/dashboard')}>
@@ -508,10 +508,21 @@ const CreateAssignment = () => {
             )}
           </FormContainer>
         )}
-      </main>
+        </MainContainer>
     </PageContainer>
   );
 };
+
+const MainContainer = styled.main`
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  
+  @media (max-width: 768px) {
+    padding: 0 1rem;
+  }
+`;
 
 const PageContainer = styled.div`
   min-height: 100vh;
