@@ -360,6 +360,110 @@ const CreateAssignment = () => {
                     />
                   </FormGroup>
                   
+                  <PhaseSection>
+                    <PhaseSectionTitle>주제 탐구 (Phase 2)</PhaseSectionTitle>
+                    
+                    <DateTimeGroup>
+                      <DateInputGroup>
+                        <Label>시작일 <Required>*</Required></Label>
+                        <DateInput
+                          type="date"
+                          name="phase2_startDate"
+                          value={formData.phases.phase2.startDate}
+                          onChange={handleInputChange}
+                          required
+                        />
+                        {errors.phase2Start && <ErrorText>{errors.phase2Start}</ErrorText>}
+                      </DateInputGroup>
+                      
+                      <TimeInputGroup>
+                        <Label>시작 시간</Label>
+                        <TimeInput
+                          type="time"
+                          name="phase2_startTime"
+                          value={formData.phases.phase2.startTime}
+                          onChange={handleInputChange}
+                        />
+                      </TimeInputGroup>
+                    </DateTimeGroup>
+                    
+                    <DateTimeGroup>
+                      <DateInputGroup>
+                        <Label>마감일 <Required>*</Required></Label>
+                        <DateInput
+                          type="date"
+                          name="phase2_endDate"
+                          value={formData.phases.phase2.endDate}
+                          onChange={handleInputChange}
+                          required
+                        />
+                        {errors.phase2End && <ErrorText>{errors.phase2End}</ErrorText>}
+                      </DateInputGroup>
+                      
+                      <TimeInputGroup>
+                        <Label>마감 시간</Label>
+                        <TimeInput
+                          type="time"
+                          name="phase2_endTime"
+                          value={formData.phases.phase2.endTime}
+                          onChange={handleInputChange}
+                        />
+                      </TimeInputGroup>
+                    </DateTimeGroup>
+                  </PhaseSection>
+                  
+                  <PhaseSection>
+                    <PhaseSectionTitle>팀별 토의 (Phase 3)</PhaseSectionTitle>
+                    
+                    <DateTimeGroup>
+                      <DateInputGroup>
+                        <Label>시작일 <Required>*</Required></Label>
+                        <DateInput
+                          type="date"
+                          name="phase3_startDate"
+                          value={formData.phases.phase3.startDate}
+                          onChange={handleInputChange}
+                          required
+                        />
+                        {errors.phase3Start && <ErrorText>{errors.phase3Start}</ErrorText>}
+                      </DateInputGroup>
+                      
+                      <TimeInputGroup>
+                        <Label>시작 시간</Label>
+                        <TimeInput
+                          type="time"
+                          name="phase3_startTime"
+                          value={formData.phases.phase3.startTime}
+                          onChange={handleInputChange}
+                        />
+                      </TimeInputGroup>
+                    </DateTimeGroup>
+                    
+                    <DateTimeGroup>
+                      <DateInputGroup>
+                        <Label>마감일 <Required>*</Required></Label>
+                        <DateInput
+                          type="date"
+                          name="phase3_endDate"
+                          value={formData.phases.phase3.endDate}
+                          onChange={handleInputChange}
+                          required
+                        />
+                        {errors.phase3End && <ErrorText>{errors.phase3End}</ErrorText>}
+                      </DateInputGroup>
+                      
+                      <TimeInputGroup>
+                        <Label>마감 시간</Label>
+                        <TimeInput
+                          type="time"
+                          name="phase3_endTime"
+                          value={formData.phases.phase3.endTime}
+                          onChange={handleInputChange}
+                        />
+                      </TimeInputGroup>
+                    </DateTimeGroup>
+                  </PhaseSection>
+                  
                   <ButtonGroup>
                     <Button 
                       type="button" 
