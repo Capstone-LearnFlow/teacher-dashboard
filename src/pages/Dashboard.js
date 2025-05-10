@@ -71,11 +71,14 @@ const Dashboard = () => {
                 <AssignmentTopic>{assignment.topic}</AssignmentTopic>
                 <AssignmentMeta>
                   <AssignmentStudents>
-                    학생 {assignment.student_count}명
+                    학생 {assignment.studentCount || assignment.student_count}명
                   </AssignmentStudents>
                   <AssignmentDate>
-                    {formatDate(assignment.created_at)}
+                    {formatDate(assignment.createdAt || assignment.created_at)}
                   </AssignmentDate>
+                  <AssignmentPhase>
+                    현재 단계: {assignment.currentPhase || 1}
+                  </AssignmentPhase>
                 </AssignmentMeta>
               </AssignmentCard>
             ))}
