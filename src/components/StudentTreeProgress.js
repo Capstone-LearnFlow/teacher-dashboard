@@ -220,18 +220,7 @@ const EmptyMessage = styled.div`
   font-style: italic;
 `;
 
-// Position type for node positioning
-const Position = {
-  x: 0,
-  y: 0
-};
-
-// Reference type for node references
-const NodeRef = {
-  element: null,
-  getHeight: () => 0,
-  getEvidencePosition: (index) => null
-};
+// Position and reference types defined as proper interfaces
 
 // Subject Node Component
 const SubjectNode = forwardRef(({ content }, ref) => {
@@ -391,12 +380,68 @@ const AnswerNode = forwardRef(({ content }, ref) => {
 });
 AnswerNode.displayName = 'AnswerNode';
 
+// Connection Line Component for connecting evidence to counterarguments
+const ConnectionLine = ({ from, to }) => {
+  if (!from || !to) return null;
+  
+  // Calculate the connection line position and dimensions
+  const startX = from.x + 438; // End of evidence node
+  const startY = from.y + 20; // Middle of evidence node
+  const endX = to.x; // Start of counterargument node
+  const endY = to.y + 20; // Middle of counterargument node
+  
+  const width = endX - startX;
+  
+  // For horizontal line
+  const lineStyle = {
+    position: 'absolute',
+    left: startX,
+    top: startY,
+    width: `${width}px`,
+    height: '3px',
+    backgroundColor: '#CC2A53', // Match counterargument color
+    zIndex: 10
+  };
+  
+  // For the circle at the start of the connection
+  const circleStyle = {
+    position: 'absolute',
+    left: startX - 5,
+    top: startY - 5,
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    backgroundColor: '#CC2A53', // Match counterargument color
+    zIndex: 10
+  };
+  
+  // For the vertical connection from horizontal line to counterargument node
+  const verticalLineStyle = {
+    position: 'absolute',
+    left: endX,
+    top: startY,
+    width: '3px',
+    height: `${Math.abs(endY - startY)}px`,
+    backgroundColor: '#CC2A53', // Match counterargument color
+    zIndex: 10
+  };
+  
+  return (
+    <>
+      <div style={circleStyle}></div>
+      <div style={lineStyle}></div>
+      {endY !== startY && <div style={verticalLineStyle}></div>}
+    </>
+  );
+};
+
 // Main StudentTreeProgress Component
 const StudentTreeProgress = ({ treeLogData, fullPage }) => {
   const [currentTimeIndex, setCurrentTimeIndex] = useState(0);
   const [activities, setActivities] = useState([]);
   const [renderableNodes, setRenderableNodes] = useState([]);
   const [nodePositions, setNodePositions] = useState(new Map());
+  const [connections, setConnections] = useState([]);
   
   // Process tree log data
   useEffect(() => {
@@ -425,14 +470,48 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
     // Transform activities into renderable nodes
     const nodes = [];
     
-    // Add nodes from visible activities
+    // Build a map of evidence IDs to their parent nodes and indices
+    const evidenceMap = new Map();
+    
+    // First pass: collect all nodes and build evidence map
+    visibleActivities.forEach((activity) => {
+      if (!activity.node || activity.node.hidden) return;
+      
+      // Map evidences to their parent nodes for later lookup
+      if (activity.evidences && activity.evidences.length > 0) {
+        activity.evidences.forEach((evidence, index) => {
+          evidenceMap.set(evidence.id, {
+            parentNodeId: activity.node.id,
+            index: index
+          });
+        });
+      }
+    });
+    
+    console.log('Evidence map:', evidenceMap);
+    
+    // Create a map to store each node by ID for easy lookup
+    const nodeMap = new Map();
+    
+    // Second pass: create renderable nodes with proper connections
     visibleActivities.forEach((activity, index) => {
       if (!activity.node || activity.node.hidden) return;
       
+      // Determine parent evidence info for counterarguments
+      let parentEvidenceInfo = null;
+      if (activity.node.type === 'COUNTER' && activity.node.triggeredByEvidenceId) {
+        parentEvidenceInfo = evidenceMap.get(activity.node.triggeredByEvidenceId);
+        console.log('Found parent evidence info for counter:', activity.node.id, parentEvidenceInfo);
+      }
+      
       // Create a node object
+      const parentId = activity.node.parentId;
+      
+      // Prepare the node 
       const node = {
         id: activity.node.id,
-        depth: activity.node.parentId === null ? 0 : 1,
+        // Initial depth will be assigned later in the depth calculation step
+        depth: parentId === null ? 0 : 1,
         node: { 
           ...activity.node,
           nodeId: activity.node.id,
@@ -440,13 +519,57 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
                 activity.node.type === 'COUNTER' ? 'counterargument' : 'question',
           evidences: activity.evidences || []
         },
-        parentNodeId: activity.node.parentId || 'subject',
-        parentEvidenceIndex: activity.node.parentEvidenceIndex
+        parentNodeId: parentId || 'subject',
+        // For counterarguments, use the index from the evidence map
+        parentEvidenceIndex: parentEvidenceInfo ? parentEvidenceInfo.index : undefined,
+        // Store the actual evidence ID that triggered this counterargument
+        triggeredByEvidenceId: activity.node.triggeredByEvidenceId
       };
       
       nodes.push(node);
+      nodeMap.set(node.id, node);
     });
     
+    // Calculate proper depths based on parent-child relationships
+    // This ensures nodes are positioned at the right horizontal level
+    const calculateProperDepth = (node, depth, visited = new Set()) => {
+      if (visited.has(node.id)) return; // Prevent infinite loops
+      visited.add(node.id);
+      
+      // Assign the current depth
+      node.depth = depth;
+      
+      // Find children of this node
+      nodes.forEach(childNode => {
+        if (childNode.parentNodeId === node.id) {
+          // For each child, calculate its depth as parent's depth + 1
+          calculateProperDepth(childNode, depth + 1, visited);
+        }
+      });
+      
+      // Special handling for counterarguments that respond to evidence
+      if (node.node.type === 'counterargument' && node.triggeredByEvidenceId) {
+        // Find the parent node (argument) that contains the evidence
+        const parentArgNode = nodes.find(n => 
+          n.node.evidences && n.node.evidences.some(e => e.id === node.triggeredByEvidenceId)
+        );
+        
+        if (parentArgNode) {
+          // The counterargument should be positioned one level to the right of its parent
+          node.depth = parentArgNode.depth + 1;
+          
+          // Store the parent node ID to establish the relationship
+          node.respondingToNodeId = parentArgNode.id;
+        }
+      }
+    };
+    
+    // Start calculating depths from root level nodes (with no parent)
+    nodes.filter(n => n.parentNodeId === 'subject').forEach(rootNode => {
+      calculateProperDepth(rootNode, 1, new Set());
+    });
+    
+    console.log('Final renderable nodes with proper depths:', nodes);
     setRenderableNodes(nodes);
   }, [activities, currentTimeIndex]);
   
@@ -472,41 +595,102 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
   const calculatePositions = useCallback(() => {
     if (renderableNodes.length === 0) return;
     
-    const newPositions = new Map();
-    const depthYOffsets = new Map();
-    
-    // Initialize depth starting positions
-    for (let depth = 0; depth <= Math.max(...renderableNodes.map(n => n.depth)); depth++) {
-      depthYOffsets.set(depth, positionorigin.y);
-    }
-    
-    // Process nodes in order (breadth-first by depth)
-    const nodesByDepth = new Map();
-    renderableNodes.forEach(node => {
-      if (!nodesByDepth.has(node.depth)) {
-        nodesByDepth.set(node.depth, []);
-      }
-      nodesByDepth.get(node.depth).push(node);
-    });
-    
-    // Process each depth level
-    Array.from(nodesByDepth.keys()).sort((a, b) => a - b).forEach(depth => {
-      const nodesAtDepth = nodesByDepth.get(depth);
+    // Use a functional update to avoid dependency on nodePositions
+    setNodePositions(prevPositions => {
+      const newPositions = new Map(prevPositions);
+      const depthYOffsets = new Map();
       
-      nodesAtDepth.forEach(nodeData => {
-        const x = positionorigin.x + (colWidth * nodeData.depth);
-        let y = depthYOffsets.get(nodeData.depth);
-        
-        newPositions.set(nodeData.id, { x, y });
-        
-        // Update the y offset for this depth to ensure siblings don't overlap
-        const nodeRef = getNodeRef(nodeData.id);
-        const nodeHeight = nodeRef.current?.getHeight() || 200; // Fallback height
-        depthYOffsets.set(nodeData.depth, y + nodeHeight + rowGap);
+      // Initialize depth starting positions
+      for (let depth = 0; depth <= Math.max(...renderableNodes.map(n => n.depth)); depth++) {
+        depthYOffsets.set(depth, positionorigin.y);
+      }
+      
+      // Process nodes in order (breadth-first by depth)
+      const nodesByDepth = new Map();
+      renderableNodes.forEach(node => {
+        if (!nodesByDepth.has(node.depth)) {
+          nodesByDepth.set(node.depth, []);
+        }
+        nodesByDepth.get(node.depth).push(node);
       });
+      
+      // Process each depth level
+      Array.from(nodesByDepth.keys()).sort((a, b) => a - b).forEach(depth => {
+        const nodesAtDepth = nodesByDepth.get(depth);
+        
+        nodesAtDepth.forEach(nodeData => {
+          const x = positionorigin.x + (colWidth * nodeData.depth);
+          let y;
+          
+          // If this node has a parent, start at parent's y position or parent's evidence position
+          if (nodeData.parentNodeId && nodeData.parentNodeId !== 'subject' && 
+              (nodeData.triggeredByEvidenceId || nodeData.parentEvidenceIndex !== undefined)) {
+            
+            // Find the parent node
+            const parentNode = renderableNodes.find(n => n.id === nodeData.parentNodeId);
+            
+            if (parentNode) {
+              const parentRef = getNodeRef(parentNode.id);
+              const parentPos = prevPositions.get(parentNode.id);
+              
+              // If we have the parent's position and reference
+              if (parentRef.current && parentPos) {
+                // Get position based on specific evidence if this is a response to an evidence
+                if (nodeData.triggeredByEvidenceId) {
+                  // Find the index of the evidence in the parent's evidences array
+                  const evidenceIndex = parentNode.node.evidences?.findIndex(e => e.id === nodeData.triggeredByEvidenceId);
+                  
+                  if (evidenceIndex !== undefined && evidenceIndex >= 0) {
+                    const evidencePosition = parentRef.current.getEvidencePosition(evidenceIndex);
+                    if (evidencePosition) {
+                      // Start at evidence node's y position
+                      y = evidencePosition.y;
+                    } else {
+                      y = parentPos.y; // Fallback to parent's y position
+                    }
+                  } else {
+                    y = parentPos.y; // Fallback to parent's y position
+                  }
+                } 
+                // If we have a specific parentEvidenceIndex, use that
+                else if (nodeData.parentEvidenceIndex !== undefined) {
+                  const evidencePosition = parentRef.current.getEvidencePosition(nodeData.parentEvidenceIndex);
+                  if (evidencePosition) {
+                    y = evidencePosition.y;
+                  } else {
+                    y = parentPos.y; // Fallback to parent's y position
+                  }
+                } else {
+                  y = parentPos.y; // Fallback to parent's y position
+                }
+                
+                // Check if this position would overlap with existing nodes at the same depth
+                const currentDepthY = depthYOffsets.get(nodeData.depth);
+                y = Math.max(y, currentDepthY);
+              } else {
+                // If parent reference or position isn't available yet, use the depth offset
+                y = depthYOffsets.get(nodeData.depth);
+              }
+            } else {
+              // If parent node isn't found, use the depth offset
+              y = depthYOffsets.get(nodeData.depth);
+            }
+          } else {
+            // Root level nodes or nodes without parents
+            y = depthYOffsets.get(nodeData.depth);
+          }
+          
+          newPositions.set(nodeData.id, { x, y });
+          
+          // Update the y offset for this depth to ensure siblings don't overlap
+          const nodeRef = getNodeRef(nodeData.id);
+          const nodeHeight = nodeRef.current?.getHeight() || 200; // Fallback height
+          depthYOffsets.set(nodeData.depth, y + nodeHeight + rowGap);
+        });
+      });
+      
+      return newPositions;
     });
-    
-    setNodePositions(newPositions);
   }, [renderableNodes, positionorigin.x, positionorigin.y, colWidth, rowGap, getNodeRef]);
   
   // Calculate positions after nodes are collected and rendered
@@ -522,6 +706,81 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
   useLayoutEffect(() => {
     calculatePositions();
   }, [nodeHeights, calculatePositions]);
+  
+  // Calculate and update connections between evidence and counterargument nodes
+  useEffect(() => {
+    if (renderableNodes.length === 0 || nodePositions.size === 0) return;
+    
+    console.log('Calculating connections for nodes:', renderableNodes);
+    setConnections([]); // Clear existing connections
+    
+    // Find all counterargument nodes with triggeredByEvidenceId
+    const counterargNodes = renderableNodes.filter(node => 
+      node.node.type === 'counterargument' && 
+      node.triggeredByEvidenceId !== undefined
+    );
+    
+    console.log('Found counterargument nodes with triggeredByEvidenceId:', counterargNodes);
+    
+    // For each counterargument, find its parent evidence position
+    setTimeout(() => {
+      const newConnections = [];
+      
+      counterargNodes.forEach(counterNode => {
+        console.log('Processing counterargument node:', counterNode);
+        
+        // Find the parent node that contains the evidence this counterargument responds to
+        const parentNode = renderableNodes.find(n => 
+          n.node.evidences && 
+          n.node.evidences.some(e => e.id === counterNode.triggeredByEvidenceId)
+        );
+        
+        if (!parentNode) {
+          console.log('Parent node containing evidence not found for counterargument:', counterNode.id);
+          return;
+        }
+        
+        console.log('Found parent node with evidence:', parentNode);
+        
+        // Find the index of the evidence in the parent node's evidences array
+        const evidenceIndex = parentNode.node.evidences.findIndex(e => e.id === counterNode.triggeredByEvidenceId);
+        if (evidenceIndex === -1) {
+          console.log('Evidence not found in parent node:', counterNode.triggeredByEvidenceId);
+          return;
+        }
+        
+        const parentRef = getNodeRef(parentNode.id);
+        const parentPos = nodePositions.get(parentNode.id);
+        const counterPos = nodePositions.get(counterNode.id);
+        
+        if (!parentRef.current || !parentPos || !counterPos) {
+          console.log('Parent ref, parent position or counter position not available');
+          return;
+        }
+        
+        // Get the evidence position using the parent node's ref
+        console.log('Getting evidence position for index:', evidenceIndex);
+        const evidencePos = parentRef.current.getEvidencePosition(evidenceIndex);
+        
+        console.log('Evidence position:', evidencePos);
+        console.log('Counter position:', counterPos);
+        
+        if (evidencePos) {
+          console.log('Creating connection from evidence to counterargument');
+          newConnections.push({
+            from: evidencePos, // Use the exact evidence position
+            to: counterPos
+          });
+        }
+      });
+      
+      console.log('Final connections:', newConnections);
+      if (newConnections.length > 0) {
+        setConnections(newConnections);
+      }
+    }, 500); // Add a delay to ensure DOM is fully rendered
+    
+  }, [renderableNodes, nodePositions, getNodeRef]);
   
   // Timeline navigation functions
   const formatDate = (dateString) => {
@@ -609,6 +868,10 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
           <SubjectNode 
             content={treeLogData.assignment.title || treeLogData.assignment.chapter || "인구 변화와 사회 문제"} 
           />
+          {/* Render connection lines between evidence and counterarguments */}
+          {connections.map((connection, index) => (
+            <ConnectionLine key={`connection-${index}`} from={connection.from} to={connection.to} />
+          ))}
           
           {/* Render nodes based on their type */}
           {renderableNodes.map((nodeData) => {
@@ -619,7 +882,10 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
             
             // Determine parent evidence position if parent exists
             let parentEvidencePosition = undefined;
-            if (nodeData.parentNodeId && nodeData.parentNodeId !== 'subject' && nodeData.parentEvidenceIndex !== undefined) {
+            
+            // Only set parentEvidencePosition for nodes that should have vertical connection lines
+            // For counterargument nodes, we handle these with the ConnectionLine component instead
+            if (nodeData.node.type !== 'counterargument' && nodeData.parentNodeId && nodeData.parentNodeId !== 'subject' && nodeData.parentEvidenceIndex !== undefined) {
               const parentNode = renderableNodes.find(n => n.id === nodeData.parentNodeId);
               if (parentNode) {
                 const parentRef = getNodeRef(parentNode.id);

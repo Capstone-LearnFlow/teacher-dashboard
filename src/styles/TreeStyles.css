@@ -39,6 +39,7 @@
   height: 20px;
   transform: translateY(-100%);
   background-color: var(--c-key);
+  z-index: 1;
 }
 
 .tree__node__link::before {
@@ -53,6 +54,17 @@
   mask-position: center;
   mask-repeat: no-repeat;
   mask-size: contain;
+}
+
+/* Enhanced connection for counterarguments */
+.tree__node--counterargument .tree__node__link {
+  width: 2px;
+  left: -36px; /* Move further left for more noticeable connection */
+  z-index: 5; /* Ensure it appears above other elements */
+}
+
+.tree__node--counterargument .tree__node__link::before {
+  width: 38px; /* Longer connector line */
 }
 
 .tree__node__link::after {
