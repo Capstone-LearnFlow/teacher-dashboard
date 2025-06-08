@@ -418,8 +418,8 @@ const ConnectionLine = ({ from, to }) => {
   // For the vertical connection from horizontal line to counterargument node
   const verticalLineStyle = {
     position: 'absolute',
-    left: endX,
-    top: startY,
+    left: endX - 2, // Slightly adjust to align with node border
+    top: Math.min(startY, endY), // Start from the higher point
     width: '3px',
     height: `${Math.abs(endY - startY)}px`,
     backgroundColor: '#CC2A53', // Match counterargument color
@@ -608,10 +608,12 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
       // Process nodes in order (breadth-first by depth)
       const nodesByDepth = new Map();
       renderableNodes.forEach(node => {
-        if (!nodesByDepth.has(node.depth)) {
-          nodesByDepth.set(node.depth, []);
+        // Ensure proper depth assignment - all nodes of the same depth level should be in the same column
+        const depth = node.depth;
+        if (!nodesByDepth.has(depth)) {
+          nodesByDepth.set(depth, []);
         }
-        nodesByDepth.get(node.depth).push(node);
+        nodesByDepth.get(depth).push(node);
       });
       
       // Process each depth level
