@@ -6,6 +6,8 @@ import styled from 'styled-components';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import CreateAssignment from './pages/CreateAssignment';
+import AssignmentDetail from './pages/AssignmentDetail';
+import StudentTreeView from './pages/StudentTreeView';
 
 // Create Authentication Context
 export const AuthContext = createContext();
@@ -82,6 +84,14 @@ function App() {
             <Route 
               path="/create-assignment" 
               element={isAuthenticated ? <CreateAssignment /> : <Navigate to="/" />} 
+            />
+            <Route 
+              path="/assignment/:assignmentId" 
+              element={isAuthenticated ? <AssignmentDetail /> : <Navigate to="/" />} 
+            />
+            <Route 
+              path="/assignment/:assignmentId/student/:studentId/tree" 
+              element={isAuthenticated ? <StudentTreeView /> : <Navigate to="/" />} 
             />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

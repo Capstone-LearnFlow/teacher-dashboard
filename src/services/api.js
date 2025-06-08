@@ -57,6 +57,22 @@ export const teacherAPI = {
     }
   },
 
+  // Get student tree logs for a specific assignment
+  getStudentTreeLogs: async (assignmentId, studentId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/teacher/assignments/${assignmentId}/students/${studentId}/tree-logs`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      
+      const data = await response.json();
+      return data.data; // Extract the data field from the response
+    } catch (error) {
+      console.error('Get student tree logs API error:', error);
+      throw error;
+    }
+  },
+
   // Create a new assignment
   createAssignment: async (assignmentData) => {
     try {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { teacherAPI } from '../services/api';
 import Header from '../components/Header';
@@ -9,6 +9,7 @@ const Dashboard = () => {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchAssignments = async () => {
@@ -65,7 +66,10 @@ const Dashboard = () => {
         ) : (
           <AssignmentGrid>
             {assignments.map((assignment) => (
-              <AssignmentCard key={assignment.id}>
+              <AssignmentCard 
+                key={assignment.id}
+                onClick={() => navigate(`/assignment/${assignment.id}`)}
+              >
                 <SubjectBadge>{assignment.subject}</SubjectBadge>
                 <AssignmentTitle>{assignment.chapter}</AssignmentTitle>
                 <AssignmentTopic>{assignment.topic}</AssignmentTopic>
@@ -82,6 +86,7 @@ const Dashboard = () => {
                     현재 단계: {assignment.currentPhase || 1}
                   </AssignmentPhase>
                 </AssignmentMeta>
+                <ViewButton>상세 보기</ViewButton>
               </AssignmentCard>
             ))}
           </AssignmentGrid>
@@ -139,6 +144,8 @@ const AssignmentCard = styled.div`
   display: flex;
   flex-direction: column;
   transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  position: relative;
   
   &:hover {
     transform: translateY(-4px);
@@ -235,6 +242,23 @@ const EmptyState = styled.div`
     margin-bottom: 1.5rem;
     color: #6c757d;
     font-size: 1.125rem;
+  }
+`;
+
+const ViewButton = styled.div`
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background-color: #e6f2ff;
+  color: #0066cc;
+  text-align: center;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  
+  ${AssignmentCard}:hover & {
+    opacity: 1;
   }
 `;
 

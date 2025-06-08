@@ -1,0 +1,155 @@
+/* Tree styles copied from learnflow-web/src/app/globals.css */
+
+.tree {
+  position: relative;
+  margin: 20px 0;
+  width: 100%;
+  min-height: 600px;
+  box-sizing: border-box;
+  z-index: 0;
+}
+
+.tree__node {
+  --c-key: #212529;
+  --c-bg: #f5f5f7;
+
+  position: absolute;
+  min-width: 462px;
+  width: 462px;
+  max-width: 462px;
+  display: inline-flex;
+  padding: 18px 12px 16px 8px;
+  margin: 0px 32px 0px 0px;
+  box-sizing: border-box;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 20px;
+  background-color: var(--c-bg);
+  border-radius: 4px 18px 18px 4px;
+  border-left: 4px solid var(--c-key);
+}
+
+.tree__node__link {
+  position: absolute;
+  display: block;
+  left: -26px;
+  top: 20px;
+  width: 2px;
+  height: 20px;
+  transform: translateY(-100%);
+  background-color: var(--c-key);
+}
+
+.tree__node__link::before {
+  content: "";
+  position: absolute;
+  right: 0px;
+  top: -3px;
+  width: 28px;
+  height: 8px;
+  background-color: var(--c-key);
+  mask-image: url('data:image/svg+xml,<svg width="28" height="8" viewBox="0 0 28 8" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="4" cy="4" r="4" fill="%23000000"/><rect x="4" y="3" width="24" height="2" fill="%23000000"/></svg>');
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.tree__node__link::after {
+  content: "";
+  position: absolute;
+  left: 0px;
+  bottom: -2px;
+  width: 22px;
+  height: 2px;
+  background-color: var(--c-key);
+}
+
+.tree__node__content_container {
+  display: flex;
+  padding-left: 4px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.tree__node__title {
+  padding-left: 2px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--c-key);
+}
+
+.tree__node__content {
+  color: #212529;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.tree__node__children_container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.tree__node__btn {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 24px;
+  height: 24px;
+  padding: 0px;
+  background-color: var(--c-key);
+  mask-image: url('data:image/svg+xml,<svg width="25" height="25" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24.9609 12.9609C24.9609 19.5727 19.5845 24.9609 12.9609 24.9609C6.34917 24.9609 0.960938 19.5727 0.960938 12.9609C0.960938 6.3374 6.34917 0.960938 12.9609 0.960938C19.5845 0.960938 24.9609 6.3374 24.9609 12.9609ZM11.9374 8.25505V11.9374H8.25505C7.64329 11.9374 7.21975 12.3609 7.21975 12.9727C7.21975 13.5727 7.64329 13.9727 8.25505 13.9727H11.9374V17.6668C11.9374 18.2668 12.3492 18.7021 12.9492 18.7021C13.5609 18.7021 13.9844 18.2786 13.9844 17.6668V13.9727H17.6786C18.2786 13.9727 18.7138 13.5727 18.7138 12.9727C18.7138 12.3609 18.2786 11.9374 17.6786 11.9374H13.9844V8.25505C13.9844 7.64329 13.5609 7.20799 12.9492 7.20799C12.3492 7.20799 11.9374 7.64329 11.9374 8.25505Z" fill="%23000000"/></svg>');
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.tree__node--subject {
+  top: 0px;
+  left: 0px;
+  min-width: 0px;
+  width: fit-content;
+  padding: 16px 24px;
+  border-radius: 18px;
+  border: none;
+}
+
+.tree__node--argument {
+  --c-key: #3E935C;
+  --c-bg: #EEFBF4;
+}
+
+.tree__node--counterargument {
+  --c-key: #CC2A53;
+  --c-bg: #FDEAEE;
+}
+
+.tree__node--evidence {
+  --c-key: inherit;
+  --c-bg: rgba(255, 255, 255, 0.60);
+
+  position: relative;
+  min-width: 438px;
+  width: 438px;
+  max-width: 438px;
+  padding: 8px 24px 12px 6px;
+}
+
+.tree__node--question {
+  --c-key: #385FA2;
+  --c-bg: #EEF4FC;
+}
+
+.tree__node--answer {
+  --c-key: #3E935C;
+  --c-bg: rgba(255, 255, 255, 0.60);
+
+  position: relative;
+  min-width: 438px;
+  width: 438px;
+  max-width: 438px;
+  padding: 8px 24px 12px 6px;
+}
