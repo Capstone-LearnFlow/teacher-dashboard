@@ -8,6 +8,13 @@ const ACTION_TYPES = {
   AI: 'AI'
 };
 
+// Slideshow speed options in milliseconds
+const SPEED_OPTIONS = {
+  SLOW: 3000,
+  MEDIUM: 2000,
+  FAST: 1000
+};
+
 // Node types mapping
 const getNodeTypeName = (type) => {
   switch (type) {
@@ -54,6 +61,14 @@ const Controls = styled.div`
   padding: 0 1rem;
 `;
 
+const SlideshowControls = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0.5rem;
+  gap: 0.5rem;
+`;
+
 const ControlButton = styled.button`
   background-color: ${props => props.disabled ? '#e9ecef' : '#f8f9fa'};
   color: ${props => props.disabled ? '#adb5bd' : '#495057'};
@@ -65,6 +80,30 @@ const ControlButton = styled.button`
   
   &:hover:not(:disabled) {
     background-color: #e9ecef;
+  }
+`;
+
+const SlideshowButton = styled(ControlButton)`
+  background-color: ${props => props.active ? '#0066cc' : '#f8f9fa'};
+  color: ${props => props.active ? '#ffffff' : '#495057'};
+  
+  &:hover:not(:disabled) {
+    background-color: ${props => props.active ? '#0056b3' : '#e9ecef'};
+  }
+`;
+
+const SpeedButton = styled.button`
+  background-color: ${props => props.active ? '#0066cc' : '#f8f9fa'};
+  color: ${props => props.active ? '#ffffff' : '#495057'};
+  border: 1px solid ${props => props.active ? '#0056b3' : '#ced4da'};
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+  
+  &:hover:not(:disabled) {
+    background-color: ${props => props.active ? '#0056b3' : '#e9ecef'};
   }
 `;
 
@@ -446,7 +485,31 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
   const [renderableNodes, setRenderableNodes] = useState([]);
   const [nodePositions, setNodePositions] = useState(new Map());
   const [connections, setConnections] = useState([]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [slideshowSpeed, setSlideshowSpeed] = useState(SPEED_OPTIONS.MEDIUM);
   
+  // Slideshow effect - advances timeline automatically when playing
+  useEffect(() => {
+    let slideshowTimer = null;
+    
+    if (isPlaying && activities.length > 0) {
+      slideshowTimer = setTimeout(() => {
+        if (currentTimeIndex < activities.length - 1) {
+          setCurrentTimeIndex(currentTimeIndex + 1);
+        } else {
+          // Stop when we reach the end
+          setIsPlaying(false);
+        }
+      }, slideshowSpeed);
+    }
+    
+    return () => {
+      if (slideshowTimer) {
+        clearTimeout(slideshowTimer);
+      }
+    };
+  }, [isPlaying, currentTimeIndex, activities.length, slideshowSpeed]);
+
   // Process tree log data
   useEffect(() => {
     if (!treeLogData || !treeLogData.activities) return;
@@ -461,10 +524,45 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
     setActivities(sortedActivities);
     
     if (sortedActivities.length > 0) {
+      // Initially set to last activity (to see the final state), 
+      // but the auto-start effect will reset to beginning
       setCurrentTimeIndex(sortedActivities.length - 1);
     }
   }, [treeLogData]);
   
+  // Auto-start slideshow from the beginning when component mounts
+  const autoStartRef = useRef(false);
+  useEffect(() => {
+    // Only auto-start once when activities are first loaded
+    if (activities.length > 0 && !autoStartRef.current) {
+      autoStartRef.current = true;
+      
+      // Set a short delay before starting to ensure the tree is properly rendered
+      const timer = setTimeout(() => {
+        setCurrentTimeIndex(0); // Start from the first step
+        setIsPlaying(true);     // Begin auto-playing
+      }, 1000); // 1 second delay for better user experience
+      
+      return () => clearTimeout(timer);
+    }
+  }, [activities]);
+  
+  // Start slideshow from the beginning
+  const handleStartSlideshow = () => {
+    setCurrentTimeIndex(0); // Reset to the beginning
+    setIsPlaying(true);
+  };
+  
+  // Toggle play/pause
+  const handleTogglePlay = () => {
+    setIsPlaying(!isPlaying);
+  };
+  
+  // Change slideshow speed
+  const handleSpeedChange = (speed) => {
+    setSlideshowSpeed(speed);
+  };
+
   // Prepare renderable nodes based on current activities
   useEffect(() => {
     if (!activities || activities.length === 0) return;
@@ -820,16 +918,22 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
   };
 
   const handleTimelineChange = (index) => {
+    // Pause slideshow if user manually changes timeline
+    setIsPlaying(false);
     setCurrentTimeIndex(index);
   };
 
   const handlePrevState = () => {
+    // Pause slideshow if user manually navigates
+    setIsPlaying(false);
     if (currentTimeIndex > 0) {
       setCurrentTimeIndex(currentTimeIndex - 1);
     }
   };
 
   const handleNextState = () => {
+    // Pause slideshow if user manually navigates
+    setIsPlaying(false);
     if (currentTimeIndex < activities.length - 1) {
       setCurrentTimeIndex(currentTimeIndex + 1);
     }
@@ -854,7 +958,7 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
     <TreeContainer className={fullPage ? 'full-page' : ''}>
       <TimelineContainer>
         <Controls>
-          <ControlButton onClick={handlePrevState} disabled={currentTimeIndex === 0}>
+          <ControlButton onClick={handlePrevState} disabled={currentTimeIndex === 0 || isPlaying}>
             &lt; 이전
           </ControlButton>
           <ActivityInfo>
@@ -864,10 +968,40 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
               {currentTimeIndex + 1} / {activities.length}
             </ActivityProgress>
           </ActivityInfo>
-          <ControlButton onClick={handleNextState} disabled={currentTimeIndex === activities.length - 1}>
+          <ControlButton onClick={handleNextState} disabled={currentTimeIndex === activities.length - 1 || isPlaying}>
             다음 &gt;
           </ControlButton>
         </Controls>
+        
+        <SlideshowControls>
+          <SlideshowButton onClick={handleStartSlideshow} disabled={isPlaying}>
+            처음부터 시작
+          </SlideshowButton>
+          <SlideshowButton onClick={handleTogglePlay} active={isPlaying}>
+            {isPlaying ? '일시정지' : '재생'}
+          </SlideshowButton>
+          <div style={{ marginLeft: '1rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <span style={{ fontSize: '0.75rem', color: '#6c757d' }}>속도:</span>
+            <SpeedButton 
+              active={slideshowSpeed === SPEED_OPTIONS.SLOW} 
+              onClick={() => handleSpeedChange(SPEED_OPTIONS.SLOW)}
+            >
+              느림
+            </SpeedButton>
+            <SpeedButton 
+              active={slideshowSpeed === SPEED_OPTIONS.MEDIUM} 
+              onClick={() => handleSpeedChange(SPEED_OPTIONS.MEDIUM)}
+            >
+              보통
+            </SpeedButton>
+            <SpeedButton 
+              active={slideshowSpeed === SPEED_OPTIONS.FAST} 
+              onClick={() => handleSpeedChange(SPEED_OPTIONS.FAST)}
+            >
+              빠름
+            </SpeedButton>
+          </div>
+        </SlideshowControls>
         
         <Timeline>
           <TimelineLine />
