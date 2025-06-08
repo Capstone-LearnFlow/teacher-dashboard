@@ -164,22 +164,26 @@ const TimelineTooltip = styled.div`
 
 const TreeContent = styled.div`
   position: relative;
-  margin: 20px 0;
+  margin: 10px 0; /* Reduced top margin */
   width: 100%;
-  min-height: 600px;
+  min-height: 800px; /* Minimum height for the tree */
   box-sizing: border-box;
   z-index: 0;
   padding: 20px;
-  flex: 1;
   display: flex;
   flex-direction: column;
+  flex: 0 1 auto; /* Don't grow beyond content */
 `;
 
 const Statistics = styled.div`
-  margin-top: 2rem;
+  margin-top: 40px; /* Space between tree and statistics */
+  margin-bottom: 40px; /* Space at the bottom */
   padding: 1rem;
   background-color: #f8f9fa;
   border-radius: 8px;
+  position: relative;
+  z-index: 5;
+  flex: 0 0 auto; /* Don't grow or shrink */
 `;
 
 const StatTitle = styled.h3`
@@ -585,11 +589,12 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
   }, []);
   
   // Position calculation constants
-  const positionorigin = { x: 8, y: 90 };
+  const positionorigin = { x: 8, y: 10 }; // Starting position for the subject node
   const nodeWidth = 462;
   const colGap = 32;
   const colWidth = nodeWidth + colGap;
-  const rowGap = 12;
+  const rowGap = 10; // Increased row gap for better spacing
+  const subjectHeight = 80; // Approximate height of subject node for spacing
   
   // Calculate positions for all nodes
   const calculatePositions = useCallback(() => {
@@ -616,12 +621,30 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
         nodesByDepth.get(depth).push(node);
       });
       
+  // Special handling for first level nodes - position them directly below the subject
+  if (nodesByDepth.has(1)) {
+    depthYOffsets.set(1, positionorigin.y + subjectHeight + 20); // Position first level nodes directly below subject with spacing
+  }
+      
       // Process each depth level
       Array.from(nodesByDepth.keys()).sort((a, b) => a - b).forEach(depth => {
         const nodesAtDepth = nodesByDepth.get(depth);
         
         nodesAtDepth.forEach(nodeData => {
-          const x = positionorigin.x + (colWidth * nodeData.depth);
+          // Calculate x position based on depth and parent-child relationships
+          let x;
+          
+          // If this is a first level node (direct child of subject), place it directly below the subject
+          if (nodeData.parentNodeId === 'subject') {
+            x = positionorigin.x; // Same x-coordinate as subject
+          } else if (nodeData.depth > 1) {
+            // For nodes at deeper levels, use the standard indentation
+            x = positionorigin.x + (colWidth * (nodeData.depth - 1));
+          } else {
+            // Default horizontal positioning
+            x = positionorigin.x + (colWidth * nodeData.depth);
+          }
+          
           let y;
           
           // If this node has a parent, start at parent's y position or parent's evidence position
@@ -921,6 +944,7 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
         </div>
       </TreeContent>
       
+      {/* Move statistics after the tree content with clear separation */}
       <Statistics>
         <StatTitle>통계</StatTitle>
         {treeLogData.statistics && (
