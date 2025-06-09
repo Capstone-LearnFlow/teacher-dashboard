@@ -87,9 +87,11 @@ const StudentTreeView = () => {
         <PageHeader>
           <HeaderLeftSection>
             <BackButton onClick={handleBack}>← 과제 상세로 돌아가기</BackButton>
-            {assignment && student && (
-              <h1>{student.name}의 트리 진행 과정 - {assignment.chapter}</h1>
-            )}
+            <HeaderTitleRow>
+              {assignment && student && (
+                <h1>{student.name}의 트리 진행 과정 - {assignment.chapter}</h1>
+              )}
+            </HeaderTitleRow>
           </HeaderLeftSection>
           <UserSection>
             {user && (
@@ -106,7 +108,11 @@ const StudentTreeView = () => {
         {treeLogData ? (
           <FullPageTreeContainer>
             {/* Pass the full response object without modifying it */}
-            <StudentTreeProgress treeLogData={treeLogData} fullPage={true} />
+            <StudentTreeProgress 
+              treeLogData={treeLogData} 
+              fullPage={true}
+              hideNodeTypesSection={true}
+            />
           </FullPageTreeContainer>
         ) : (
           <EmptyState>트리 로그 데이터가 없습니다.</EmptyState>
@@ -136,6 +142,7 @@ const PageHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  width: 100%;
   
   h1 {
     font-size: 1.5rem;
@@ -144,6 +151,14 @@ const PageHeader = styled.div`
     margin: 0.5rem 0;
   }
 `;
+
+const HeaderTitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+`;
+
 
 const HeaderLeftSection = styled.div`
   flex: 1;
@@ -195,6 +210,7 @@ const FullPageTreeContainer = styled.div`
   flex-direction: column;
   min-height: calc(100vh - 200px);
   background-color: white;
+  width: 100%;
 `;
 
 const LoadingMessage = styled.div`

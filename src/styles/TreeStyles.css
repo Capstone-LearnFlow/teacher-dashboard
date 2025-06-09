@@ -169,15 +169,14 @@
   mask-size: contain;
   cursor: pointer;
   z-index: 100;
-  /* Add a visible border for debugging */
-  border: 2px solid #ff0000;
+  border: none;
   border-radius: 50%;
 }
 
 /* Add hover state for better visibility */
 .tree__node__btn:hover {
   transform: scale(1.2);
-  background-color: #ff0000; /* Make the button red on hover */
+  filter: brightness(0.9); /* Slightly darken the button on hover */
 }
 
 .tree__node--subject {
@@ -188,6 +187,7 @@
   padding: 16px 24px;
   border-radius: 18px;
   border: none;
+  --c-key: #3E935C; /* Set subject node color to green */
 }
 
 .tree__node--argument {

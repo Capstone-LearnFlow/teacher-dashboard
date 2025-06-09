@@ -334,6 +334,21 @@ const SpeedButton = styled.button`
   }
 `;
 
+const StatsToggleButton = styled.button`
+  background-color: ${props => props.active ? '#0066cc' : '#f8f9fa'};
+  color: ${props => props.active ? '#ffffff' : '#495057'};
+  border: 1px solid ${props => props.active ? '#0056b3' : '#ced4da'};
+  padding: 0.375rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  
+  &:hover {
+    background-color: ${props => props.active ? '#0056b3' : '#e9ecef'};
+  }
+`;
+
 const ActivityInfo = styled.div`
   text-align: center;
   flex: 1;
@@ -431,7 +446,7 @@ const TimelineTooltip = styled.div`
 const TreeContent = styled.div`
   position: relative;
   margin: 10px 0; /* Reduced top margin */
-  width: ${props => props.fullPage ? '75%' : '100%'};
+  width: 100%; /* Always use full width */
   min-height: 800px; /* Minimum height for the tree */
   box-sizing: border-box;
   z-index: 0;
@@ -441,27 +456,70 @@ const TreeContent = styled.div`
   flex: 0 1 auto; /* Don't grow beyond content */
 `;
 
+// Statistics Popup Styling
+const StatisticsPopup = styled.div`
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  max-width: 800px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 101;
+  display: ${props => props.isOpen ? 'block' : 'none'};
+  animation: slideDown 0.3s ease-in-out;
+  
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -20px);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+  }
+`;
+
 // Statistics Section Styling
 const Statistics = styled.div`
-  ${props => props.fullPage ? `
-    width: 25%;
-    margin-left: 20px;
-    margin-top: 0;
-    align-self: flex-start;
-    position: sticky;
-    top: 120px;
-  ` : `
-    margin-top: 40px;
-    margin-bottom: 40px;
-    width: 100%;
-  `}
   padding: 1.5rem;
   background-color: #f8f9fa;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  position: relative;
-  z-index: 5;
-  flex: 0 0 auto;
+  animation: fadeIn 0.3s ease-in-out;
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
+
+// Statistics Popup Header
+const StatisticsHeader = styled.div`
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 12px 12px 0 0;
+`;
+
+const StatisticsTitle = styled.h3`
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #212529;
 `;
 
 const StatTitle = styled.h3`
@@ -902,7 +960,7 @@ const NodeDetailPanelComponent = ({
 };
 
 // Main StudentTreeProgress Component
-const StudentTreeProgress = ({ treeLogData, fullPage }) => {
+const StudentTreeProgress = ({ treeLogData, fullPage, showStatistics: initialShowStatistics = true, hideNodeTypesSection = false }) => {
   const [currentTimeIndex, setCurrentTimeIndex] = useState(0);
   const [activities, setActivities] = useState([]);
   const [renderableNodes, setRenderableNodes] = useState([]);
@@ -915,6 +973,22 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  
+  // Internal state for statistics visibility
+  const [internalShowStatistics, setInternalShowStatistics] = useState(initialShowStatistics);
+  
+  // Combine prop and internal state for determining if statistics should be shown
+  const effectiveShowStatistics = internalShowStatistics;
+  
+  // Toggle statistics visibility
+  const toggleStatistics = () => {
+    setInternalShowStatistics(!internalShowStatistics);
+  };
+  
+  // Close the statistics popup
+  const closeStatistics = () => {
+    setInternalShowStatistics(false);
+  };
 
 
   // Log component initialization
@@ -1523,7 +1597,7 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
   return (
     <TreeContainer fullPage={fullPage} className={fullPage ? 'full-page' : ''}>
       <div style={{ 
-        width: fullPage ? '75%' : '100%', 
+        width: '100%', 
         display: 'flex', 
         flexDirection: 'column' 
       }}>
@@ -1583,6 +1657,12 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
                 빠름
               </SpeedButton>
             </div>
+            <StatsToggleButton 
+              onClick={() => toggleStatistics()} 
+              active={effectiveShowStatistics}
+            >
+              {effectiveShowStatistics ? '통계 숨기기' : '통계 보기'}
+            </StatsToggleButton>
           </SlideshowControls>
           
           <Timeline>
@@ -1666,132 +1746,144 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
         </TreeContent>
       </div>
       
-      {/* Enhanced statistics section with better organization and visual elements */}
-      <Statistics fullPage={fullPage}>
-        <StatTitle>통계</StatTitle>
-        {statistics && (
-          <StatCategories>
-            {/* Node statistics section */}
-            <StatCategory>
-              <StatCategoryTitle>노드 통계</StatCategoryTitle>
-              <StatGrid>
-                <StatItem color="#3E935C">
-                  <StatLabel>총 노드 수</StatLabel>
-                  <StatValue>{statistics.totalNodes}</StatValue>
-                </StatItem>
-                <StatItem color="#6c757d">
-                  <StatLabel>학생 노드</StatLabel>
-                  <StatValue>{statistics.studentNodes}</StatValue>
-                </StatItem>
-                <StatItem color="#20c997">
-                  <StatLabel>AI 노드</StatLabel>
-                  <StatValue>{statistics.aiNodes}</StatValue>
-                </StatItem>
-              </StatGrid>
+      {/* Statistics Popup */}
+      {effectiveShowStatistics && (
+        <>
+          <Overlay isOpen={effectiveShowStatistics} onClick={closeStatistics} />
+          <StatisticsPopup isOpen={effectiveShowStatistics}>
+            <StatisticsHeader>
+              <StatisticsTitle>통계</StatisticsTitle>
+              <CloseButton onClick={closeStatistics}>×</CloseButton>
+            </StatisticsHeader>
+            <Statistics>
+              {statistics && (
+            <StatCategories>
+              {/* Node statistics section */}
+              <StatCategory>
+                <StatCategoryTitle>노드 통계</StatCategoryTitle>
+                <StatGrid>
+                  <StatItem color="#3E935C">
+                    <StatLabel>총 노드 수</StatLabel>
+                    <StatValue>{statistics.totalNodes}</StatValue>
+                  </StatItem>
+                  <StatItem color="#6c757d">
+                    <StatLabel>학생 노드</StatLabel>
+                    <StatValue>{statistics.studentNodes}</StatValue>
+                  </StatItem>
+                  <StatItem color="#20c997">
+                    <StatLabel>AI 노드</StatLabel>
+                    <StatValue>{statistics.aiNodes}</StatValue>
+                  </StatItem>
+                </StatGrid>
+                
+                {/* Node contribution visualization */}
+                {statistics.totalNodes > 0 && (
+                  <>
+                    <ContributionBar>
+                      <StudentContribution 
+                        percentage={(statistics.studentNodes / statistics.totalNodes) * 100} 
+                      />
+                      <AIContribution 
+                        studentPercentage={(statistics.studentNodes / statistics.totalNodes) * 100}
+                        percentage={(statistics.aiNodes / statistics.totalNodes) * 100} 
+                      />
+                    </ContributionBar>
+                    <ContributionLegend>
+                      <LegendItem>
+                        <LegendColor color="#6c757d" />
+                        학생 {Math.round((statistics.studentNodes / statistics.totalNodes) * 100)}%
+                      </LegendItem>
+                      <LegendItem>
+                        <LegendColor color="#20c997" />
+                        AI {Math.round((statistics.aiNodes / statistics.totalNodes) * 100)}%
+                      </LegendItem>
+                    </ContributionLegend>
+                  </>
+                )}
+              </StatCategory>
               
-              {/* Node contribution visualization */}
-              {statistics.totalNodes > 0 && (
-                <>
-                  <ContributionBar>
-                    <StudentContribution 
-                      percentage={(statistics.studentNodes / statistics.totalNodes) * 100} 
-                    />
-                    <AIContribution 
-                      studentPercentage={(statistics.studentNodes / statistics.totalNodes) * 100}
-                      percentage={(statistics.aiNodes / statistics.totalNodes) * 100} 
-                    />
-                  </ContributionBar>
-                  <ContributionLegend>
-                    <LegendItem>
-                      <LegendColor color="#6c757d" />
-                      학생 {Math.round((statistics.studentNodes / statistics.totalNodes) * 100)}%
-                    </LegendItem>
-                    <LegendItem>
-                      <LegendColor color="#20c997" />
-                      AI {Math.round((statistics.aiNodes / statistics.totalNodes) * 100)}%
-                    </LegendItem>
-                  </ContributionLegend>
-                </>
-              )}
-            </StatCategory>
-            
-            {/* Evidence statistics section */}
-            <StatCategory>
-              <StatCategoryTitle>근거 통계</StatCategoryTitle>
-              <StatGrid>
-                <StatItem color="#385FA2">
-                  <StatLabel>총 근거 수</StatLabel>
-                  <StatValue>{statistics.totalEvidences}</StatValue>
-                </StatItem>
-                <StatItem color="#6c757d">
-                  <StatLabel>학생 근거</StatLabel>
-                  <StatValue>{statistics.studentEvidences}</StatValue>
-                </StatItem>
-                <StatItem color="#20c997">
-                  <StatLabel>AI 근거</StatLabel>
-                  <StatValue>{statistics.aiEvidences}</StatValue>
-                </StatItem>
-              </StatGrid>
+              {/* Evidence statistics section */}
+              <StatCategory>
+                <StatCategoryTitle>근거 통계</StatCategoryTitle>
+                <StatGrid>
+                  <StatItem color="#385FA2">
+                    <StatLabel>총 근거 수</StatLabel>
+                    <StatValue>{statistics.totalEvidences}</StatValue>
+                  </StatItem>
+                  <StatItem color="#6c757d">
+                    <StatLabel>학생 근거</StatLabel>
+                    <StatValue>{statistics.studentEvidences}</StatValue>
+                  </StatItem>
+                  <StatItem color="#20c997">
+                    <StatLabel>AI 근거</StatLabel>
+                    <StatValue>{statistics.aiEvidences}</StatValue>
+                  </StatItem>
+                </StatGrid>
+                
+                {/* Evidence contribution visualization */}
+                {statistics.totalEvidences > 0 && (
+                  <>
+                    <ContributionBar>
+                      <StudentContribution 
+                        percentage={(statistics.studentEvidences / statistics.totalEvidences) * 100} 
+                      />
+                      <AIContribution 
+                        studentPercentage={(statistics.studentEvidences / statistics.totalEvidences) * 100}
+                        percentage={(statistics.aiEvidences / statistics.totalEvidences) * 100} 
+                      />
+                    </ContributionBar>
+                    <ContributionLegend>
+                      <LegendItem>
+                        <LegendColor color="#6c757d" />
+                        학생 {Math.round((statistics.studentEvidences / statistics.totalEvidences) * 100)}%
+                      </LegendItem>
+                      <LegendItem>
+                        <LegendColor color="#20c997" />
+                        AI {Math.round((statistics.aiEvidences / statistics.totalEvidences) * 100)}%
+                      </LegendItem>
+                    </ContributionLegend>
+                  </>
+                )}
+              </StatCategory>
               
-              {/* Evidence contribution visualization */}
-              {statistics.totalEvidences > 0 && (
-                <>
-                  <ContributionBar>
-                    <StudentContribution 
-                      percentage={(statistics.studentEvidences / statistics.totalEvidences) * 100} 
-                    />
-                    <AIContribution 
-                      studentPercentage={(statistics.studentEvidences / statistics.totalEvidences) * 100}
-                      percentage={(statistics.aiEvidences / statistics.totalEvidences) * 100} 
-                    />
-                  </ContributionBar>
-                  <ContributionLegend>
-                    <LegendItem>
-                      <LegendColor color="#6c757d" />
-                      학생 {Math.round((statistics.studentEvidences / statistics.totalEvidences) * 100)}%
-                    </LegendItem>
-                    <LegendItem>
-                      <LegendColor color="#20c997" />
-                      AI {Math.round((statistics.aiEvidences / statistics.totalEvidences) * 100)}%
-                    </LegendItem>
-                  </ContributionLegend>
-                </>
+              {/* Activity statistics section */}
+              <StatCategory>
+                <StatCategoryTitle>활동 통계</StatCategoryTitle>
+                <StatGrid>
+                  <StatItem color="#CC2A53">
+                    <StatLabel>AI 상호작용</StatLabel>
+                    <StatValue>{statistics.aiInteractions}</StatValue>
+                  </StatItem>
+                  <StatItem color="#212529">
+                    <StatLabel>총 활동 기간</StatLabel>
+                    <StatValue>{statistics.totalDuration}</StatValue>
+                  </StatItem>
+                </StatGrid>
+              </StatCategory>
+              
+              {/* Summary section - conditionally rendered based on hideNodeTypesSection prop */}
+              {!hideNodeTypesSection && (
+                <StatSummary>
+                  <SummaryItem>
+                    <SummaryLabel>노드 유형</SummaryLabel>
+                    <SummaryValue color="#3E935C">주장 {statistics.argumentNodes || '-'}</SummaryValue>
+                  </SummaryItem>
+                  <SummaryItem>
+                    <SummaryLabel>예상 반론</SummaryLabel>
+                    <SummaryValue color="#CC2A53">{statistics.counterargumentNodes || '-'}</SummaryValue>
+                  </SummaryItem>
+                  <SummaryItem>
+                    <SummaryLabel>예상 질문</SummaryLabel>
+                    <SummaryValue color="#385FA2">{statistics.questionNodes || '-'}</SummaryValue>
+                  </SummaryItem>
+                </StatSummary>
               )}
-            </StatCategory>
-            
-            {/* Activity statistics section */}
-            <StatCategory>
-              <StatCategoryTitle>활동 통계</StatCategoryTitle>
-              <StatGrid>
-                <StatItem color="#CC2A53">
-                  <StatLabel>AI 상호작용</StatLabel>
-                  <StatValue>{statistics.aiInteractions}</StatValue>
-                </StatItem>
-                <StatItem color="#212529">
-                  <StatLabel>총 활동 기간</StatLabel>
-                  <StatValue>{statistics.totalDuration}</StatValue>
-                </StatItem>
-              </StatGrid>
-            </StatCategory>
-            
-            {/* Summary section */}
-            <StatSummary>
-              <SummaryItem>
-                <SummaryLabel>노드 유형</SummaryLabel>
-                <SummaryValue color="#3E935C">주장 {statistics.argumentNodes || '-'}</SummaryValue>
-              </SummaryItem>
-              <SummaryItem>
-                <SummaryLabel>예상 반론</SummaryLabel>
-                <SummaryValue color="#CC2A53">{statistics.counterargumentNodes || '-'}</SummaryValue>
-              </SummaryItem>
-              <SummaryItem>
-                <SummaryLabel>예상 질문</SummaryLabel>
-                <SummaryValue color="#385FA2">{statistics.questionNodes || '-'}</SummaryValue>
-              </SummaryItem>
-            </StatSummary>
-          </StatCategories>
-        )}
-      </Statistics>
+            </StatCategories>
+              )}
+            </Statistics>
+          </StatisticsPopup>
+        </>
+      )}
       
       {/* Handle closing the node detail panel */}
       <NodeDetailPanelComponent
