@@ -159,14 +159,25 @@
   position: absolute;
   right: 8px;
   top: 8px;
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   padding: 0px;
   background-color: var(--c-key);
   mask-image: url('data:image/svg+xml,<svg width="25" height="25" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24.9609 12.9609C24.9609 19.5727 19.5845 24.9609 12.9609 24.9609C6.34917 24.9609 0.960938 19.5727 0.960938 12.9609C0.960938 6.3374 6.34917 0.960938 12.9609 0.960938C19.5845 0.960938 24.9609 6.3374 24.9609 12.9609ZM11.9374 8.25505V11.9374H8.25505C7.64329 11.9374 7.21975 12.3609 7.21975 12.9727C7.21975 13.5727 7.64329 13.9727 8.25505 13.9727H11.9374V17.6668C11.9374 18.2668 12.3492 18.7021 12.9492 18.7021C13.5609 18.7021 13.9844 18.2786 13.9844 17.6668V13.9727H17.6786C18.2786 13.9727 18.7138 13.5727 18.7138 12.9727C18.7138 12.3609 18.2786 11.9374 17.6786 11.9374H13.9844V8.25505C13.9844 7.64329 13.5609 7.20799 12.9492 7.20799C12.3492 7.20799 11.9374 7.64329 11.9374 8.25505Z" fill="%23000000"/></svg>');
   mask-position: center;
   mask-repeat: no-repeat;
   mask-size: contain;
+  cursor: pointer;
+  z-index: 100;
+  /* Add a visible border for debugging */
+  border: 2px solid #ff0000;
+  border-radius: 50%;
+}
+
+/* Add hover state for better visibility */
+.tree__node__btn:hover {
+  transform: scale(1.2);
+  background-color: #ff0000; /* Make the button red on hover */
 }
 
 .tree__node--subject {

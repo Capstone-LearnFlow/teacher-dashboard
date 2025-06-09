@@ -1,6 +1,208 @@
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef, useLayoutEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import '../styles/TreeStyles.css';
+import ReactMarkdown from 'react-markdown';
+import { loadChatMessages as supabaseLoadChatMessages } from '../services/supabase';
+// Node Detail Panel component
+const NodeDetailPanel = styled.div`
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 50%;
+  height: 100vh;
+  background-color: white;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateX(${props => props.isOpen ? '0' : '100%'});
+  transition: transform 0.3s ease-in-out;
+`;
+
+const PanelHeader = styled.div`
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const PanelTitle = styled.h3`
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #212529;
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: #6c757d;
+  
+  &:hover {
+    color: #212529;
+  }
+`;
+
+const PanelContent = styled.div`
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const NodeContent = styled.div`
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+`;
+
+const NodeTitle = styled.h4`
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: #495057;
+`;
+
+const NodeText = styled.p`
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+`;
+
+const EvidenceList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+`;
+
+const EvidenceItem = styled.div`
+  background-color: white;
+  border: 1px solid #e9ecef;
+  border-left: 3px solid #3E935C;
+  border-radius: 4px;
+  padding: 0.75rem;
+`;
+
+const EvidenceTitle = styled.h5`
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  color: #3E935C;
+`;
+
+const EvidenceText = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+`;
+
+const ChatHistorySection = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+const ChatHistoryTitle = styled.h4`
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: #495057;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 0.5rem;
+`;
+
+const ChatHistoryList = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const ChatMessageItem = styled.div`
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  max-width: 80%;
+  margin-bottom: 0.5rem;
+  
+  ${props => props.sender === 'USER' ? `
+    align-self: flex-end;
+    background-color: #e9f5ff;
+    border: 1px solid #cce5ff;
+  ` : `
+    align-self: flex-start;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+  `}
+`;
+
+const ChatMessageText = styled.div`
+  font-size: 0.875rem;
+  line-height: 1.4;
+`;
+
+const ChatMessageTime = styled.div`
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-top: 0.25rem;
+  text-align: right;
+`;
+
+const LoadingSpinner = styled.div`
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3498db;
+  border-radius: 50%;
+  margin: 2rem auto;
+  animation: spin 1s linear infinite;
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const EmptyChatMessage = styled.div`
+  text-align: center;
+  padding: 2rem;
+  color: #6c757d;
+  font-style: italic;
+`;
+
+const Overlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  z-index: 90;
+  display: ${props => props.isOpen ? 'block' : 'none'};
+`;
+
+// Interface for chat messages (structure reference only)
+// eslint-disable-next-line no-unused-vars
+const ChatMessage = {
+  id: '',
+  assignment_id: '',
+  parent_node_id: '',
+  node_id: '',
+  sender: '', // 'USER' or 'AI'
+  message: '',
+  created_at: '',
+  mode: '', // 'ask' or 'create'
+  user_id: '',
+  user_name: '',
+  suggestions: [],
+  citations: []
+};
 
 // Creator types
 const CREATOR_TYPES = {
@@ -431,7 +633,7 @@ const SubjectNode = forwardRef(({ content }, ref) => {
 SubjectNode.displayName = 'SubjectNode';
 
 // Argument Node Component
-const ArgumentNode = forwardRef(({ argNode, position, parentposition, childNodes, nodeData }, ref) => {
+const ArgumentNode = forwardRef(({ argNode, position, parentposition, childNodes, nodeData, onNodeClick }, ref) => {
   const elementRef = useRef(null);
   const childRefs = useRef([]);
   
@@ -444,6 +646,14 @@ const ArgumentNode = forwardRef(({ argNode, position, parentposition, childNodes
   const nodeTypeLabel = getNodeTypeName(argNode.type === 'argument' ? 'CLAIM' : 
                                         argNode.type === 'counterargument' ? 'COUNTER' : 
                                         argNode.type === 'question' ? 'QUESTION' : 'CLAIM');
+  
+  // Handle node button click
+  const handleButtonClick = (e) => {
+    e.stopPropagation(); // Prevent any parent events
+    if (onNodeClick) {
+      onNodeClick(nodeData);
+    }
+  };
   
   useImperativeHandle(ref, () => ({
     element: elementRef.current,
@@ -504,7 +714,7 @@ const ArgumentNode = forwardRef(({ argNode, position, parentposition, childNodes
           ))}
         </div>
       )}
-      <div className="tree__node__btn"></div>
+      <div className="tree__node__btn" onClick={handleButtonClick}></div>
     </div>
   );
 });
@@ -524,13 +734,21 @@ const EvidenceNode = forwardRef(({ content, index }, ref) => {
 EvidenceNode.displayName = 'EvidenceNode';
 
 // Question Node Component
-const QuestionNode = forwardRef(({ qNode, position, parentposition, nodeData }, ref) => {
+const QuestionNode = forwardRef(({ qNode, position, parentposition, nodeData, onNodeClick }, ref) => {
   const elementRef = useRef(null);
   const childRefs = useRef([]);
   
   if (qNode.answers) {
     childRefs.current = qNode.answers.map(() => React.createRef());
   }
+  
+  // Handle node button click
+  const handleButtonClick = (e) => {
+    e.stopPropagation(); // Prevent any parent events
+    if (onNodeClick) {
+      onNodeClick(nodeData);
+    }
+  };
   
   useImperativeHandle(ref, () => ({
     element: elementRef.current,
@@ -574,7 +792,7 @@ const QuestionNode = forwardRef(({ qNode, position, parentposition, nodeData }, 
           ))}
         </div>
       )}
-      <div className="tree__node__btn"></div>
+      <div className="tree__node__btn" onClick={handleButtonClick}></div>
     </div>
   );
 });
@@ -595,6 +813,94 @@ AnswerNode.displayName = 'AnswerNode';
 
 // All connection styling is handled through CSS in TreeStyles.css
 
+// NodeDetailPanel Component
+const NodeDetailPanelComponent = ({ 
+  isOpen, 
+  onClose, 
+  selectedNode, 
+  assignment,
+  student,
+  chatMessages, 
+  loading 
+}) => {
+  if (!selectedNode) return null;
+
+  const nodeType = selectedNode.node.type;
+  const nodeTypeLabel = getNodeTypeName(
+    nodeType === 'argument' ? 'CLAIM' : 
+    nodeType === 'counterargument' ? 'COUNTER' : 
+    nodeType === 'question' ? 'QUESTION' : 'CLAIM'
+  );
+
+  return (
+    <>
+      <Overlay isOpen={isOpen} onClick={onClose} />
+      <NodeDetailPanel isOpen={isOpen}>
+        <PanelHeader>
+          <PanelTitle>{nodeTypeLabel} 상세</PanelTitle>
+          <CloseButton onClick={onClose}>×</CloseButton>
+        </PanelHeader>
+        <PanelContent>
+          <NodeContent>
+            <NodeTitle>{nodeTypeLabel}</NodeTitle>
+            <NodeText>{selectedNode.node.content}</NodeText>
+            
+            {selectedNode.node.evidences && selectedNode.node.evidences.length > 0 && (
+              <EvidenceList>
+                {selectedNode.node.evidences.map((evidence, index) => (
+                  <EvidenceItem key={evidence.id}>
+                    <EvidenceTitle>근거 {index + 1}</EvidenceTitle>
+                    <EvidenceText>{evidence.content}</EvidenceText>
+                  </EvidenceItem>
+                ))}
+              </EvidenceList>
+            )}
+          </NodeContent>
+          
+          <ChatHistorySection>
+          <ChatHistoryTitle>
+            채팅 이력
+            {chatMessages.length > 0 && chatMessages[0].id?.includes('mock') && (
+              <span style={{ 
+                fontSize: '0.7rem', 
+                backgroundColor: '#ffe8e8', 
+                color: '#e74c3c', 
+                padding: '2px 6px', 
+                borderRadius: '4px', 
+                marginLeft: '8px',
+                verticalAlign: 'middle'
+              }}>
+                테스트 데이터
+              </span>
+            )}
+          </ChatHistoryTitle>
+            <ChatHistoryList>
+              {loading ? (
+                <LoadingSpinner />
+              ) : chatMessages.length > 0 ? (
+                chatMessages.map((message, index) => (
+                  <ChatMessageItem key={index} sender={message.sender}>
+                    <ChatMessageText>
+                      <ReactMarkdown>{message.message}</ReactMarkdown>
+                    </ChatMessageText>
+                    <ChatMessageTime>
+                      {new Date(message.created_at).toLocaleString('ko-KR')}
+                    </ChatMessageTime>
+                  </ChatMessageItem>
+                ))
+              ) : (
+                <EmptyChatMessage>
+                  이 노드에 대한 채팅 이력이 없습니다.
+                </EmptyChatMessage>
+              )}
+            </ChatHistoryList>
+          </ChatHistorySection>
+        </PanelContent>
+      </NodeDetailPanel>
+    </>
+  );
+};
+
 // Main StudentTreeProgress Component
 const StudentTreeProgress = ({ treeLogData, fullPage }) => {
   const [currentTimeIndex, setCurrentTimeIndex] = useState(0);
@@ -603,6 +909,135 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
   const [nodePositions, setNodePositions] = useState(new Map());
   const [isPlaying, setIsPlaying] = useState(false);
   const [slideshowSpeed, setSlideshowSpeed] = useState(SPEED_OPTIONS.MEDIUM);
+  
+  // State for node detail panel
+  const [selectedNode, setSelectedNode] = useState(null);
+  const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+
+
+  // Log component initialization
+  useEffect(() => {
+    console.log('📋 StudentTreeProgress component initialized');
+  }, []);
+  
+  // Handle node button click
+  const handleNodeClick = async (nodeData) => {
+    console.log('+ BUTTON CLICKED:', nodeData);
+    
+    setSelectedNode(nodeData);
+    setIsDetailPanelOpen(true);
+    
+    // Still show the panel even if we don't have all data
+    if (!nodeData) {
+      console.error('Missing node data for loading chat messages');
+      return;
+    }
+    
+    setLoadingMessages(true);
+    
+    try {
+      // Get assignment ID - handle different possible data structures
+      let assignmentId;
+      
+      // Try different paths to find the assignment ID
+      if (treeLogData?.data?.assignment?.id) {
+        assignmentId = treeLogData.data.assignment.id.toString();
+      } else if (treeLogData?.assignment?.id) {
+        assignmentId = treeLogData.assignment.id.toString();
+      } else if (treeLogData?.id) {
+        assignmentId = treeLogData.id.toString();
+      } else if (typeof treeLogData === 'object' && treeLogData !== null) {
+        // Log the structure to help debug
+        console.log('TreeLogData structure:', JSON.stringify(treeLogData, null, 2).substring(0, 200) + '...');
+      }
+
+      // If no assignment ID is available, we can't load messages
+      if (!assignmentId) {
+        console.error('No assignment ID available. TreeLogData:', treeLogData);
+        setChatMessages([]);
+        return;
+      }
+      
+      const nodeId = nodeData.id.toString();
+      const parentNodeId = (nodeData.parentNodeId || '0').toString();
+      
+      console.log('Loading chat messages with parameters:', { 
+        assignmentId, 
+        parentNodeId, 
+        nodeId
+      });
+      
+      // Use the simplified supabase service function
+      const result = await supabaseLoadChatMessages(
+        assignmentId, 
+        parentNodeId, 
+        nodeId
+      );
+      
+      console.log('🔵 Chat messages load result:', {
+        success: result.success,
+        messageCount: result.data?.length || 0,
+        isMock: result.mock || false
+      });
+      
+      if (result.success && result.data) {
+        // If we got mock data, log it
+        if (result.mock) {
+          console.log('ℹ️ Using mock chat messages (network request simulated)');
+        }
+        
+        console.log('🟢 Loaded chat messages:', result.data.length);
+        setChatMessages(result.data);
+      } else if (result.error) {
+        throw result.error;
+      } else {
+        console.log('No chat messages found for this node.');
+        
+        // Generate fallback messages - though this case should not happen
+        // with our new mock implementation
+        const fallbackMessages = [
+          {
+            id: `fallback-1-${nodeId}`,
+            sender: 'USER',
+            message: '학생: 채팅 내용을 불러오는 중 오류가 발생했습니다.',
+            created_at: new Date(Date.now() - 3600000).toISOString()
+          },
+          {
+            id: `fallback-2-${nodeId}`,
+            sender: 'AI',
+            message: 'AI: 잠시 후 다시 시도해 주세요.',
+            created_at: new Date(Date.now() - 3500000).toISOString()
+          }
+        ];
+        
+        console.log('⚠️ Using fallback messages');
+        setChatMessages(fallbackMessages);
+      }
+    } catch (error) {
+      console.error('❌ Exception loading chat messages:', error);
+      
+      // Provide fallback messages in case of unexpected errors
+      const fallbackMessages = [
+        {
+          id: `error-1-${Date.now()}`,
+          sender: 'USER',
+          message: '학생: 데이터를 가져오는 중 오류가 발생했지만, 이렇게 채팅 내용이 표시됩니다.',
+          created_at: new Date(Date.now() - 3600000).toISOString()
+        },
+        {
+          id: `error-2-${Date.now()}`,
+          sender: 'AI',
+          message: 'AI: 현재 임시 데이터를 보여드리고 있습니다.',
+          created_at: new Date(Date.now() - 3500000).toISOString()
+        }
+      ];
+      setChatMessages(fallbackMessages);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
   
   // Slideshow effect - advances timeline automatically when playing
   useEffect(() => {
@@ -1207,6 +1642,7 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
                   position={position}
                   parentposition={parentEvidencePosition}
                   nodeData={nodeData}
+                  onNodeClick={handleNodeClick}
                 />
               );
             } else {
@@ -1219,6 +1655,7 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
                   parentposition={parentEvidencePosition}
                   childNodes={nodeData.children}
                   nodeData={nodeData}
+                  onNodeClick={handleNodeClick}
                 />
               );
             }
@@ -1355,6 +1792,17 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
           </StatCategories>
         )}
       </Statistics>
+      
+      {/* Handle closing the node detail panel */}
+      <NodeDetailPanelComponent
+        isOpen={isDetailPanelOpen}
+        onClose={() => setIsDetailPanelOpen(false)}
+        selectedNode={selectedNode}
+        assignment={treeData.data?.assignment}
+        student={treeData.data?.student}
+        chatMessages={chatMessages}
+        loading={loadingMessages}
+      />
     </TreeContainer>
   );
 };
