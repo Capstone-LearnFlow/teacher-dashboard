@@ -11,45 +11,28 @@ const StudentTreeView = () => {
   const { assignmentId, studentId } = useParams();
   const navigate = useNavigate();
   
-  const [assignment, setAssignment] = useState(null);
-  const [student, setStudent] = useState(null);
   const [treeLogData, setTreeLogData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Fetch assignment, student, and tree log data
+  // Fetch tree log data
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         
-        // Fetch assignment
-        const assignments = await teacherAPI.getAssignments();
-        const currentAssignment = assignments.find(a => a.id === parseInt(assignmentId));
-        
-        if (!currentAssignment) {
-          setError('과제를 찾을 수 없습니다.');
-          return;
-        }
-        
-        setAssignment(currentAssignment);
-        
-        // Fetch students to get the selected student's details
-        const studentsData = await teacherAPI.getStudents();
-        const currentStudent = studentsData.find(s => s.id === parseInt(studentId));
-        
-        if (!currentStudent) {
-          setError('학생을 찾을 수 없습니다.');
-          return;
-        }
-        
-        setStudent(currentStudent);
-        
-        // Fetch tree log data
+        // Fetch tree log data - this now includes assignment and student info
         const treeData = await teacherAPI.getStudentTreeLogs(assignmentId, studentId);
-        setTreeLogData(treeData);
+        console.log('Fetched tree data:', treeData);
         
-        setError('');
+        // Ensure the response has the correct structure (with status and data fields)
+        if (treeData) {
+          // Keep the full response structure intact
+          setTreeLogData(treeData);
+          setError('');
+        } else {
+          setError('트리 데이터를 불러오는데 실패했습니다.');
+        }
       } catch (error) {
         console.error('Failed to fetch data:', error);
         setError('데이터를 불러오는데 실패했습니다.');
@@ -93,6 +76,11 @@ const StudentTreeView = () => {
     );
   }
 
+  // Get assignment and student info from tree data for header display
+  // Use a safe way to access nested properties
+  const assignment = treeLogData && treeLogData.data ? treeLogData.data.assignment : null;
+  const student = treeLogData && treeLogData.data ? treeLogData.data.student : null;
+
   return (
     <PageContainer>
       <ContentContainer>
@@ -100,7 +88,7 @@ const StudentTreeView = () => {
           <HeaderLeftSection>
             <BackButton onClick={handleBack}>← 과제 상세로 돌아가기</BackButton>
             {assignment && student && (
-              <h1>{student.name}의 트리 진행 과정 - {assignment.topic || assignment.chapter}</h1>
+              <h1>{student.name}의 트리 진행 과정 - {assignment.chapter}</h1>
             )}
           </HeaderLeftSection>
           <UserSection>
@@ -117,6 +105,7 @@ const StudentTreeView = () => {
         
         {treeLogData ? (
           <FullPageTreeContainer>
+            {/* Pass the full response object without modifying it */}
             <StudentTreeProgress treeLogData={treeLogData} fullPage={true} />
           </FullPageTreeContainer>
         ) : (

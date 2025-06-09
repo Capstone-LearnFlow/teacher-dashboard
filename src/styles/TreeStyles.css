@@ -61,10 +61,60 @@
   width: 2px;
   left: -36px; /* Move further left for more noticeable connection */
   z-index: 5; /* Ensure it appears above other elements */
+  background-color: #CC2A53; /* Red color for counterargument connections */
 }
 
 .tree__node--counterargument .tree__node__link::before {
   width: 38px; /* Longer connector line */
+  background-color: #CC2A53; /* Red color for counterargument connections */
+}
+
+.tree__node--counterargument .tree__node__link::after {
+  background-color: #CC2A53; /* Red color for counterargument connections */
+}
+
+/* Connections from counter-evidence to claims */
+.tree__node__evidence-to-claim {
+  position: absolute;
+  width: 2px;
+  background-color: #3E935C; /* Green color for claim connections */
+  z-index: 4;
+}
+
+.tree__node__evidence-to-claim::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #3E935C; /* Green color for claim connections */
+}
+
+.tree__node__evidence-to-claim::after {
+  content: "";
+  position: absolute;
+  width: 100px;
+  height: 2px;
+  background-color: #3E935C; /* Green color for claim connections */
+}
+
+/* Connection points styling */
+.connection-point {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  z-index: 6;
+}
+
+.connection-point--counter {
+  background-color: #CC2A53; /* Red for counter */
+}
+
+.connection-point--claim {
+  background-color: #3E935C; /* Green for claim */
 }
 
 .tree__node__link::after {

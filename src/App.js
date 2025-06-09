@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import CreateAssignment from './pages/CreateAssignment';
 import AssignmentDetail from './pages/AssignmentDetail';
 import StudentTreeView from './pages/StudentTreeView';
+import TreeVisualizationTest from './components/TreeVisualizationTest';
 
 // Create Authentication Context
 export const AuthContext = createContext();
@@ -92,6 +93,11 @@ function App() {
             <Route 
               path="/assignment/:assignmentId/student/:studentId/tree" 
               element={isAuthenticated ? <StudentTreeView /> : <Navigate to="/" />} 
+            />
+            {/* Test route for tree visualization - no auth check for easier testing */}
+            <Route 
+              path="/tree-test" 
+              element={<TreeVisualizationTest />} 
             />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef, us
 import styled from 'styled-components';
 import '../styles/TreeStyles.css';
 
-// Action types
-const ACTION_TYPES = {
+// Creator types
+const CREATOR_TYPES = {
   STUDENT: 'STUDENT',
-  AI: 'AI'
+  AI: 'AI',
+  TEACHER: 'TEACHER'
 };
 
 // Slideshow speed options in milliseconds
@@ -20,6 +21,8 @@ const getNodeTypeName = (type) => {
   switch (type) {
     case 'CLAIM':
       return '주장';
+    case 'SUBJECT':
+      return '주제';
     case 'EVIDENCE':
       return '근거';
     case 'COUNTER':
@@ -33,7 +36,7 @@ const getNodeTypeName = (type) => {
   }
 };
 
-// CSS styles for the timeline navigation
+// CSS styles for the tree and timeline navigation
 const TreeContainer = styled.div`
   position: relative;
   width: 100%;
@@ -43,6 +46,27 @@ const TreeContainer = styled.div`
   display: flex;
   flex-direction: column;
   flex: 1;
+`;
+
+const TreeHeader = styled.div`
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+`;
+
+const AssignmentTitle = styled.h2`
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #212529;
+`;
+
+const StudentInfo = styled.div`
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #495057;
 `;
 
 const TimelineContainer = styled.div`
@@ -279,7 +303,7 @@ const SubjectNode = forwardRef(({ content }, ref) => {
 SubjectNode.displayName = 'SubjectNode';
 
 // Argument Node Component
-const ArgumentNode = forwardRef(({ argNode, position, parentposition, childNodes }, ref) => {
+const ArgumentNode = forwardRef(({ argNode, position, parentposition, childNodes, nodeData }, ref) => {
   const elementRef = useRef(null);
   const childRefs = useRef([]);
   
@@ -325,7 +349,16 @@ const ArgumentNode = forwardRef(({ argNode, position, parentposition, childNodes
       className={`tree__node tree__node--${nodeType}`} 
       style={{ left: position.x, top: position.y }}
     >
-      {parentposition && <div className="tree__node__link" style={{ height: `${Math.abs(parentposition.y - position.y)}px` }}></div>}
+      {/* Always render connection line for non-root nodes */}
+      {(parentposition || nodeType === 'counterargument' || nodeData?.parentNodeId !== 'subject') && (
+        <div 
+          className="tree__node__link" 
+          style={{ 
+            height: `${parentposition ? Math.abs(parentposition.y - position.y) : 60}px`,
+            backgroundColor: nodeType === 'counterargument' ? '#CC2A53' : '#3E935C' 
+          }}
+        ></div>
+      )}
       <div className="tree__node__content_container">
         <div className="tree__node__title">{nodeTypeLabel}</div>
         <div className="tree__node__content">{argNode.summary || argNode.content}</div>
@@ -363,7 +396,7 @@ const EvidenceNode = forwardRef(({ content, index }, ref) => {
 EvidenceNode.displayName = 'EvidenceNode';
 
 // Question Node Component
-const QuestionNode = forwardRef(({ qNode, position, parentposition }, ref) => {
+const QuestionNode = forwardRef(({ qNode, position, parentposition, nodeData }, ref) => {
   const elementRef = useRef(null);
   const childRefs = useRef([]);
   
@@ -388,7 +421,16 @@ const QuestionNode = forwardRef(({ qNode, position, parentposition }, ref) => {
       className="tree__node tree__node--question" 
       style={{ left: position.x, top: position.y }}
     >
-      {parentposition && <div className="tree__node__link" style={{ height: `${Math.abs(parentposition.y - position.y)}px` }}></div>}
+      {/* Always render connection line for non-root nodes - same approach as ArgumentNode */}
+      {(parentposition || nodeData?.parentNodeId !== 'subject') && (
+        <div 
+          className="tree__node__link" 
+          style={{ 
+            height: `${parentposition ? Math.abs(parentposition.y - position.y) : 60}px`,
+            backgroundColor: '#CC2A53' // Use red for question nodes
+          }}
+        ></div>
+      )}
       <div className="tree__node__content_container">
         <div className="tree__node__title">예상 질문</div>
         <div className="tree__node__content">{qNode.summary || qNode.content}</div>
@@ -423,60 +465,7 @@ const AnswerNode = forwardRef(({ content }, ref) => {
 });
 AnswerNode.displayName = 'AnswerNode';
 
-// Connection Line Component for connecting evidence to counterarguments
-const ConnectionLine = ({ from, to }) => {
-  if (!from || !to) return null;
-  
-  // Calculate the connection line position and dimensions
-  const startX = from.x + 438; // End of evidence node
-  const startY = from.y + 20; // Middle of evidence node
-  const endX = to.x; // Start of counterargument node
-  const endY = to.y + 20; // Middle of counterargument node
-  
-  const width = endX - startX;
-  
-  // For horizontal line
-  const lineStyle = {
-    position: 'absolute',
-    left: startX,
-    top: startY,
-    width: `${width}px`,
-    height: '3px',
-    backgroundColor: '#CC2A53', // Match counterargument color
-    zIndex: 10
-  };
-  
-  // For the circle at the start of the connection
-  const circleStyle = {
-    position: 'absolute',
-    left: startX - 5,
-    top: startY - 5,
-    width: '10px',
-    height: '10px',
-    borderRadius: '50%',
-    backgroundColor: '#CC2A53', // Match counterargument color
-    zIndex: 10
-  };
-  
-  // For the vertical connection from horizontal line to counterargument node
-  const verticalLineStyle = {
-    position: 'absolute',
-    left: endX - 2, // Slightly adjust to align with node border
-    top: Math.min(startY, endY), // Start from the higher point
-    width: '3px',
-    height: `${Math.abs(endY - startY)}px`,
-    backgroundColor: '#CC2A53', // Match counterargument color
-    zIndex: 10
-  };
-  
-  return (
-    <>
-      <div style={circleStyle}></div>
-      <div style={lineStyle}></div>
-      {endY !== startY && <div style={verticalLineStyle}></div>}
-    </>
-  );
-};
+// All connection styling is handled through CSS in TreeStyles.css
 
 // Main StudentTreeProgress Component
 const StudentTreeProgress = ({ treeLogData, fullPage }) => {
@@ -484,7 +473,6 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
   const [activities, setActivities] = useState([]);
   const [renderableNodes, setRenderableNodes] = useState([]);
   const [nodePositions, setNodePositions] = useState(new Map());
-  const [connections, setConnections] = useState([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [slideshowSpeed, setSlideshowSpeed] = useState(SPEED_OPTIONS.MEDIUM);
   
@@ -512,15 +500,61 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
 
   // Process tree log data
   useEffect(() => {
-    if (!treeLogData || !treeLogData.activities) return;
+    if (!treeLogData) return;
     
     console.log("Raw tree log data:", treeLogData);
     
+    // Determine the actual tree data structure based on API response format
+    const treeData = treeLogData.data ? treeLogData : { data: treeLogData };
+    
+    // For the new data structure, we need to create activities from the tree structure
+    // by traversing the nodes and creating an activity for each node
+    const extractActivities = (node, parentId = null) => {
+      const activities = [];
+      
+      if (!node) return activities;
+      
+      // Create an activity for the current node
+      if (node.id !== 0) { // Skip the root subject node for activities
+        activities.push({
+          node: {
+            ...node,
+            parentId: parentId,
+            nodeId: node.id,
+            type: node.type,
+          },
+          evidences: node.evidences || [],
+          actionBy: node.createdBy === 'STUDENT' ? CREATOR_TYPES.STUDENT : 
+                    node.createdBy === 'AI' ? CREATOR_TYPES.AI : CREATOR_TYPES.TEACHER,
+          timestamp: node.createdAt
+        });
+      }
+      
+      // Add activities for all children recursively
+      if (node.children && node.children.length > 0) {
+        node.children.forEach(child => {
+          activities.push(...extractActivities(child, node.id));
+        });
+      }
+      
+      return activities;
+    };
+    
+    // Extract activities from the tree structure
+    let allActivities = [];
+    if (treeData.data && treeData.data.treeStructure) {
+      console.log("Extracting activities from tree structure:", treeData.data.treeStructure);
+      allActivities = extractActivities(treeData.data.treeStructure);
+    }
+    
+    console.log("Extracted activities:", allActivities);
+    
     // Sort activities by timestamp
-    const sortedActivities = [...treeLogData.activities].sort((a, b) => 
+    const sortedActivities = [...allActivities].sort((a, b) => 
       new Date(a.timestamp) - new Date(b.timestamp)
     );
     
+    console.log("Sorted activities:", sortedActivities);
     setActivities(sortedActivities);
     
     if (sortedActivities.length > 0) {
@@ -618,7 +652,9 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
           ...activity.node,
           nodeId: activity.node.id,
           type: activity.node.type === 'CLAIM' ? 'argument' : 
-                activity.node.type === 'COUNTER' ? 'counterargument' : 'question',
+                activity.node.type === 'COUNTER' ? 'counterargument' : 
+                activity.node.type === 'QUESTION' ? 'question' : 
+                activity.node.type === 'SUBJECT' ? 'subject' : 'argument',
           evidences: activity.evidences || []
         },
         parentNodeId: parentId || 'subject',
@@ -650,20 +686,27 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
       });
       
       // Special handling for counterarguments that respond to evidence
-      if (node.node.type === 'counterargument' && node.triggeredByEvidenceId) {
-        // Find the parent node (argument) that contains the evidence
-        const parentArgNode = nodes.find(n => 
-          n.node.evidences && n.node.evidences.some(e => e.id === node.triggeredByEvidenceId)
-        );
+    if (node.node.type === 'counterargument' && node.triggeredByEvidenceId) {
+      // Find the parent node (argument) that contains the evidence
+      const parentArgNode = nodes.find(n => 
+        n.node.evidences && n.node.evidences.some(e => e.id === node.triggeredByEvidenceId)
+      );
+      
+      if (parentArgNode) {
+        // The counterargument should be positioned one level to the right of its parent
+        node.depth = parentArgNode.depth + 1;
         
-        if (parentArgNode) {
-          // The counterargument should be positioned one level to the right of its parent
-          node.depth = parentArgNode.depth + 1;
-          
-          // Store the parent node ID to establish the relationship
-          node.respondingToNodeId = parentArgNode.id;
+        // Store the parent node ID to establish the relationship
+        node.respondingToNodeId = parentArgNode.id;
+        
+        // Store the evidence index for proper connection positioning
+        const evidenceIndex = parentArgNode.node.evidences.findIndex(e => e.id === node.triggeredByEvidenceId);
+        if (evidenceIndex !== -1) {
+          node.parentEvidenceIndex = evidenceIndex;
+          node.parentNodeId = parentArgNode.id;
         }
       }
+    }
     };
     
     // Start calculating depths from root level nodes (with no parent)
@@ -691,7 +734,7 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
   const nodeWidth = 462;
   const colGap = 32;
   const colWidth = nodeWidth + colGap;
-  const rowGap = 10; // Increased row gap for better spacing
+  const rowGap = 14; // Increased row gap for better spacing
   const subjectHeight = 80; // Approximate height of subject node for spacing
   
   // Calculate positions for all nodes
@@ -722,6 +765,17 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
   // Special handling for first level nodes - position them directly below the subject
   if (nodesByDepth.has(1)) {
     depthYOffsets.set(1, positionorigin.y + subjectHeight + 20); // Position first level nodes directly below subject with spacing
+  }
+  
+  // Special handling for second level nodes - ensure they're positioned to the right
+  if (nodesByDepth.has(2)) {
+    // Ensure second level nodes are positioned with enough space between them
+    nodesByDepth.get(2).forEach((node, idx) => {
+      // For counter nodes responding to evidence, position them aligned with their source
+      if (node.node.type === 'counterargument' && node.triggeredByEvidenceId) {
+        // Special positioning handled in the main loop
+      }
+    });
   }
       
       // Process each depth level
@@ -830,80 +884,8 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
     calculatePositions();
   }, [nodeHeights, calculatePositions]);
   
-  // Calculate and update connections between evidence and counterargument nodes
-  useEffect(() => {
-    if (renderableNodes.length === 0 || nodePositions.size === 0) return;
-    
-    console.log('Calculating connections for nodes:', renderableNodes);
-    setConnections([]); // Clear existing connections
-    
-    // Find all counterargument nodes with triggeredByEvidenceId
-    const counterargNodes = renderableNodes.filter(node => 
-      node.node.type === 'counterargument' && 
-      node.triggeredByEvidenceId !== undefined
-    );
-    
-    console.log('Found counterargument nodes with triggeredByEvidenceId:', counterargNodes);
-    
-    // For each counterargument, find its parent evidence position
-    setTimeout(() => {
-      const newConnections = [];
-      
-      counterargNodes.forEach(counterNode => {
-        console.log('Processing counterargument node:', counterNode);
-        
-        // Find the parent node that contains the evidence this counterargument responds to
-        const parentNode = renderableNodes.find(n => 
-          n.node.evidences && 
-          n.node.evidences.some(e => e.id === counterNode.triggeredByEvidenceId)
-        );
-        
-        if (!parentNode) {
-          console.log('Parent node containing evidence not found for counterargument:', counterNode.id);
-          return;
-        }
-        
-        console.log('Found parent node with evidence:', parentNode);
-        
-        // Find the index of the evidence in the parent node's evidences array
-        const evidenceIndex = parentNode.node.evidences.findIndex(e => e.id === counterNode.triggeredByEvidenceId);
-        if (evidenceIndex === -1) {
-          console.log('Evidence not found in parent node:', counterNode.triggeredByEvidenceId);
-          return;
-        }
-        
-        const parentRef = getNodeRef(parentNode.id);
-        const parentPos = nodePositions.get(parentNode.id);
-        const counterPos = nodePositions.get(counterNode.id);
-        
-        if (!parentRef.current || !parentPos || !counterPos) {
-          console.log('Parent ref, parent position or counter position not available');
-          return;
-        }
-        
-        // Get the evidence position using the parent node's ref
-        console.log('Getting evidence position for index:', evidenceIndex);
-        const evidencePos = parentRef.current.getEvidencePosition(evidenceIndex);
-        
-        console.log('Evidence position:', evidencePos);
-        console.log('Counter position:', counterPos);
-        
-        if (evidencePos) {
-          console.log('Creating connection from evidence to counterargument');
-          newConnections.push({
-            from: evidencePos, // Use the exact evidence position
-            to: counterPos
-          });
-        }
-      });
-      
-      console.log('Final connections:', newConnections);
-      if (newConnections.length > 0) {
-        setConnections(newConnections);
-      }
-    }, 500); // Add a delay to ensure DOM is fully rendered
-    
-  }, [renderableNodes, nodePositions, getNodeRef]);
+  // All connections are handled directly within the node components
+  // No separate connections calculation needed
   
   // Timeline navigation functions
   const formatDate = (dateString) => {
@@ -942,20 +924,52 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
   const getActivityDescription = (activity) => {
     if (!activity || !activity.node) return '';
 
-    const actionByText = activity.actionBy === ACTION_TYPES.STUDENT ? '학생' : 'AI';
+    let actionByText;
+    switch (activity.actionBy) {
+      case CREATOR_TYPES.STUDENT:
+        actionByText = '학생';
+        break;
+      case CREATOR_TYPES.AI:
+        actionByText = 'AI';
+        break;
+      case CREATOR_TYPES.TEACHER:
+        actionByText = '선생님';
+        break;
+      default:
+        actionByText = '사용자';
+    }
+    
     const nodeTypeText = getNodeTypeName(activity.node.type);
     
     return `${actionByText}이(가) ${nodeTypeText}를 추가했습니다`;
   };
 
-  if (!treeLogData || !activities || activities.length === 0) {
+  // Determine the actual tree data structure based on API response format
+  const treeData = treeLogData && treeLogData.data ? treeLogData : { data: treeLogData };
+  
+  if (!treeData || !activities || activities.length === 0) {
+    console.log("No tree data available:", treeData);
     return <EmptyMessage>트리 데이터가 없습니다.</EmptyMessage>;
   }
 
   const currentActivity = activities[currentTimeIndex];
+  const assignment = treeData.data?.assignment;
+  const student = treeData.data?.student;
+  const statistics = treeData.data?.statistics;
   
   return (
     <TreeContainer className={fullPage ? 'full-page' : ''}>
+      {assignment && student && (
+        <TreeHeader>
+          <AssignmentTitle>
+            {assignment.subject}: {assignment.chapter}
+          </AssignmentTitle>
+          <StudentInfo>
+            학생: {student.name} ({student.number})
+          </StudentInfo>
+        </TreeHeader>
+      )}
+    
       <TimelineContainer>
         <Controls>
           <ControlButton onClick={handlePrevState} disabled={currentTimeIndex === 0 || isPlaying}>
@@ -1009,12 +1023,13 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
             <TimelinePoint 
               key={index}
               isCurrent={index === currentTimeIndex}
-              isStudent={activity.actionBy === ACTION_TYPES.STUDENT}
+              isStudent={activity.actionBy === CREATOR_TYPES.STUDENT}
               onClick={() => handleTimelineChange(index)}
             >
               <TimelineTooltip>
                 {formatDate(activity.timestamp)}<br/>
-                {activity.actionBy === ACTION_TYPES.STUDENT ? '학생' : 'AI'} 활동
+                {activity.actionBy === CREATOR_TYPES.STUDENT ? '학생' : 
+                 activity.actionBy === CREATOR_TYPES.AI ? 'AI' : '선생님'} 활동
               </TimelineTooltip>
             </TimelinePoint>
           ))}
@@ -1024,15 +1039,14 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
       <TreeContent>
         <div className="tree">
           {/* Subject Node - Always visible */}
-          <SubjectNode 
-            content={treeLogData.assignment.title || treeLogData.assignment.chapter || "인구 변화와 사회 문제"} 
-          />
-          {/* Render connection lines between evidence and counterarguments */}
-          {connections.map((connection, index) => (
-            <ConnectionLine key={`connection-${index}`} from={connection.from} to={connection.to} />
-          ))}
+          {treeData.data && treeData.data.treeStructure && (
+            <SubjectNode 
+              content={treeData.data.treeStructure.content || 
+                      (assignment ? (assignment.title || assignment.chapter) : "주제")} 
+            />
+          )}
           
-          {/* Render nodes based on their type */}
+          {/* First render all nodes so they're positioned correctly */}
           {renderableNodes.map((nodeData) => {
             const position = nodePositions.get(nodeData.id) || { 
               x: positionorigin.x + (colWidth * nodeData.depth), 
@@ -1042,9 +1056,8 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
             // Determine parent evidence position if parent exists
             let parentEvidencePosition = undefined;
             
-            // Only set parentEvidencePosition for nodes that should have vertical connection lines
-            // For counterargument nodes, we handle these with the ConnectionLine component instead
-            if (nodeData.node.type !== 'counterargument' && nodeData.parentNodeId && nodeData.parentNodeId !== 'subject' && nodeData.parentEvidenceIndex !== undefined) {
+            // Set parentEvidencePosition for all nodes including counterarguments with parent evidence
+            if (nodeData.parentNodeId && nodeData.parentNodeId !== 'subject' && nodeData.parentEvidenceIndex !== undefined) {
               const parentNode = renderableNodes.find(n => n.id === nodeData.parentNodeId);
               if (parentNode) {
                 const parentRef = getNodeRef(parentNode.id);
@@ -1055,53 +1068,69 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
             if (nodeData.node.type === 'question') {
               return (
                 <QuestionNode
-                  key={nodeData.id}
+                  key={`node-${nodeData.id}`}
                   ref={getNodeRef(nodeData.id)}
                   qNode={nodeData.node}
                   position={position}
                   parentposition={parentEvidencePosition}
+                  nodeData={nodeData}
                 />
               );
             } else {
               return (
                 <ArgumentNode
-                  key={nodeData.id}
+                  key={`node-${nodeData.id}`}
                   ref={getNodeRef(nodeData.id)}
                   argNode={nodeData.node}
                   position={position}
                   parentposition={parentEvidencePosition}
                   childNodes={nodeData.children}
+                  nodeData={nodeData}
                 />
               );
             }
           })}
+          
+          {/* We're not using separate connection lines to match learnflow-web implementation */}
         </div>
       </TreeContent>
       
       {/* Move statistics after the tree content with clear separation */}
       <Statistics>
         <StatTitle>통계</StatTitle>
-        {treeLogData.statistics && (
+        {statistics && (
           <StatGrid>
             <StatItem>
               <StatLabel>총 노드 수</StatLabel>
-              <StatValue>{treeLogData.statistics.totalNodes}</StatValue>
+              <StatValue>{statistics.totalNodes}</StatValue>
             </StatItem>
             <StatItem>
               <StatLabel>학생 노드</StatLabel>
-              <StatValue>{treeLogData.statistics.studentNodes}</StatValue>
+              <StatValue>{statistics.studentNodes}</StatValue>
             </StatItem>
             <StatItem>
               <StatLabel>AI 노드</StatLabel>
-              <StatValue>{treeLogData.statistics.aiNodes}</StatValue>
+              <StatValue>{statistics.aiNodes}</StatValue>
+            </StatItem>
+            <StatItem>
+              <StatLabel>AI 상호작용</StatLabel>
+              <StatValue>{statistics.aiInteractions}</StatValue>
             </StatItem>
             <StatItem>
               <StatLabel>총 근거 수</StatLabel>
-              <StatValue>{treeLogData.statistics.totalEvidences}</StatValue>
+              <StatValue>{statistics.totalEvidences}</StatValue>
+            </StatItem>
+            <StatItem>
+              <StatLabel>학생 근거</StatLabel>
+              <StatValue>{statistics.studentEvidences}</StatValue>
+            </StatItem>
+            <StatItem>
+              <StatLabel>AI 근거</StatLabel>
+              <StatValue>{statistics.aiEvidences}</StatValue>
             </StatItem>
             <StatItem>
               <StatLabel>총 활동 기간</StatLabel>
-              <StatValue>{treeLogData.statistics.totalDuration}</StatValue>
+              <StatValue>{statistics.totalDuration}</StatValue>
             </StatItem>
           </StatGrid>
         )}
