@@ -44,7 +44,7 @@ const TreeContainer = styled.div`
   min-height: 600px;
   overflow: auto;
   display: flex;
-  flex-direction: column;
+  flex-direction: ${props => props.fullPage ? 'row' : 'column'};
   flex: 1;
 `;
 
@@ -54,6 +54,7 @@ const TreeHeader = styled.div`
   background-color: #f8f9fa;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  width: 100%;
 `;
 
 const AssignmentTitle = styled.h2`
@@ -228,7 +229,7 @@ const TimelineTooltip = styled.div`
 const TreeContent = styled.div`
   position: relative;
   margin: 10px 0; /* Reduced top margin */
-  width: 100%;
+  width: ${props => props.fullPage ? '75%' : '100%'};
   min-height: 800px; /* Minimum height for the tree */
   box-sizing: border-box;
   z-index: 0;
@@ -238,46 +239,173 @@ const TreeContent = styled.div`
   flex: 0 1 auto; /* Don't grow beyond content */
 `;
 
+// Statistics Section Styling
 const Statistics = styled.div`
-  margin-top: 40px; /* Space between tree and statistics */
-  margin-bottom: 40px; /* Space at the bottom */
-  padding: 1rem;
+  ${props => props.fullPage ? `
+    width: 25%;
+    margin-left: 20px;
+    margin-top: 0;
+    align-self: flex-start;
+    position: sticky;
+    top: 120px;
+  ` : `
+    margin-top: 40px;
+    margin-bottom: 40px;
+    width: 100%;
+  `}
+  padding: 1.5rem;
   background-color: #f8f9fa;
-  border-radius: 8px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   position: relative;
   z-index: 5;
-  flex: 0 0 auto; /* Don't grow or shrink */
+  flex: 0 0 auto;
 `;
 
 const StatTitle = styled.h3`
-  font-size: 1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: #212529;
+  display: flex;
+  align-items: center;
+  
+  &::before {
+    content: "";
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
+    background-color: #212529;
+    mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M5 12a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1H5zm10-8a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-4zm-5 4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1h-4z"/></svg>');
+    mask-position: center;
+    mask-repeat: no-repeat;
+    mask-size: contain;
+  }
+`;
+
+const StatCategories = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`;
+
+const StatCategory = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const StatCategoryTitle = styled.h4`
+  font-size: 0.875rem;
   font-weight: 600;
-  margin-bottom: 1rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
 `;
 
 const StatGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
 `;
 
 const StatItem = styled.div`
   background-color: white;
-  padding: 0.75rem;
-  border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  border-left: 3px solid ${props => props.color || '#212529'};
 `;
 
 const StatLabel = styled.div`
   font-size: 0.75rem;
   color: #6c757d;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
 `;
 
 const StatValue = styled.div`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #212529;
+`;
+
+const ContributionBar = styled.div`
+  margin-top: 1rem;
+  height: 8px;
+  width: 100%;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+`;
+
+const StudentContribution = styled.div`
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: ${props => props.percentage}%;
+  background-color: #6c757d;
+  border-radius: 4px 0 0 4px;
+`;
+
+const AIContribution = styled.div`
+  position: absolute;
+  left: ${props => props.studentPercentage}%;
+  top: 0;
+  height: 100%;
+  width: ${props => props.percentage}%;
+  background-color: #20c997;
+  border-radius: ${props => props.studentPercentage > 0 ? '0 4px 4px 0' : '4px'};
+`;
+
+const ContributionLegend = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+`;
+
+const LegendItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: #6c757d;
+`;
+
+const LegendColor = styled.div`
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background-color: ${props => props.color};
+`;
+
+const StatSummary = styled.div`
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+`;
+
+const SummaryItem = styled.div`
+  text-align: center;
+`;
+
+const SummaryLabel = styled.div`
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-bottom: 4px;
+`;
+
+const SummaryValue = styled.div`
   font-size: 1.125rem;
   font-weight: 600;
-  color: #212529;
+  color: ${props => props.color || '#212529'};
 `;
 
 const EmptyMessage = styled.div`
@@ -958,85 +1086,90 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
   const statistics = treeData.data?.statistics;
   
   return (
-    <TreeContainer className={fullPage ? 'full-page' : ''}>
-      {assignment && student && (
-        <TreeHeader>
-          <AssignmentTitle>
-            {assignment.subject}: {assignment.chapter}
-          </AssignmentTitle>
-          <StudentInfo>
-            학생: {student.name} ({student.number})
-          </StudentInfo>
-        </TreeHeader>
-      )}
+    <TreeContainer fullPage={fullPage} className={fullPage ? 'full-page' : ''}>
+      <div style={{ 
+        width: fullPage ? '75%' : '100%', 
+        display: 'flex', 
+        flexDirection: 'column' 
+      }}>
+        {assignment && student && (
+          <TreeHeader>
+            <AssignmentTitle>
+              {assignment.subject}: {assignment.chapter}
+            </AssignmentTitle>
+            <StudentInfo>
+              학생: {student.name} ({student.number})
+            </StudentInfo>
+          </TreeHeader>
+        )}
     
-      <TimelineContainer>
-        <Controls>
-          <ControlButton onClick={handlePrevState} disabled={currentTimeIndex === 0 || isPlaying}>
-            &lt; 이전
-          </ControlButton>
-          <ActivityInfo>
-            <ActivityTimestamp>{formatDate(currentActivity.timestamp)}</ActivityTimestamp>
-            <ActivityDescription>{getActivityDescription(currentActivity)}</ActivityDescription>
-            <ActivityProgress>
-              {currentTimeIndex + 1} / {activities.length}
-            </ActivityProgress>
-          </ActivityInfo>
-          <ControlButton onClick={handleNextState} disabled={currentTimeIndex === activities.length - 1 || isPlaying}>
-            다음 &gt;
-          </ControlButton>
-        </Controls>
+        <TimelineContainer>
+          <Controls>
+            <ControlButton onClick={handlePrevState} disabled={currentTimeIndex === 0 || isPlaying}>
+              &lt; 이전
+            </ControlButton>
+            <ActivityInfo>
+              <ActivityTimestamp>{formatDate(currentActivity.timestamp)}</ActivityTimestamp>
+              <ActivityDescription>{getActivityDescription(currentActivity)}</ActivityDescription>
+              <ActivityProgress>
+                {currentTimeIndex + 1} / {activities.length}
+              </ActivityProgress>
+            </ActivityInfo>
+            <ControlButton onClick={handleNextState} disabled={currentTimeIndex === activities.length - 1 || isPlaying}>
+              다음 &gt;
+            </ControlButton>
+          </Controls>
+          
+          <SlideshowControls>
+            <SlideshowButton onClick={handleStartSlideshow} disabled={isPlaying}>
+              처음부터 시작
+            </SlideshowButton>
+            <SlideshowButton onClick={handleTogglePlay} active={isPlaying}>
+              {isPlaying ? '일시정지' : '재생'}
+            </SlideshowButton>
+            <div style={{ marginLeft: '1rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <span style={{ fontSize: '0.75rem', color: '#6c757d' }}>속도:</span>
+              <SpeedButton 
+                active={slideshowSpeed === SPEED_OPTIONS.SLOW} 
+                onClick={() => handleSpeedChange(SPEED_OPTIONS.SLOW)}
+              >
+                느림
+              </SpeedButton>
+              <SpeedButton 
+                active={slideshowSpeed === SPEED_OPTIONS.MEDIUM} 
+                onClick={() => handleSpeedChange(SPEED_OPTIONS.MEDIUM)}
+              >
+                보통
+              </SpeedButton>
+              <SpeedButton 
+                active={slideshowSpeed === SPEED_OPTIONS.FAST} 
+                onClick={() => handleSpeedChange(SPEED_OPTIONS.FAST)}
+              >
+                빠름
+              </SpeedButton>
+            </div>
+          </SlideshowControls>
+          
+          <Timeline>
+            <TimelineLine />
+            {activities.map((activity, index) => (
+              <TimelinePoint 
+                key={index}
+                isCurrent={index === currentTimeIndex}
+                isStudent={activity.actionBy === CREATOR_TYPES.STUDENT}
+                onClick={() => handleTimelineChange(index)}
+              >
+                <TimelineTooltip>
+                  {formatDate(activity.timestamp)}<br/>
+                  {activity.actionBy === CREATOR_TYPES.STUDENT ? '학생' : 
+                   activity.actionBy === CREATOR_TYPES.AI ? 'AI' : '선생님'} 활동
+                </TimelineTooltip>
+              </TimelinePoint>
+            ))}
+          </Timeline>
+        </TimelineContainer>
         
-        <SlideshowControls>
-          <SlideshowButton onClick={handleStartSlideshow} disabled={isPlaying}>
-            처음부터 시작
-          </SlideshowButton>
-          <SlideshowButton onClick={handleTogglePlay} active={isPlaying}>
-            {isPlaying ? '일시정지' : '재생'}
-          </SlideshowButton>
-          <div style={{ marginLeft: '1rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <span style={{ fontSize: '0.75rem', color: '#6c757d' }}>속도:</span>
-            <SpeedButton 
-              active={slideshowSpeed === SPEED_OPTIONS.SLOW} 
-              onClick={() => handleSpeedChange(SPEED_OPTIONS.SLOW)}
-            >
-              느림
-            </SpeedButton>
-            <SpeedButton 
-              active={slideshowSpeed === SPEED_OPTIONS.MEDIUM} 
-              onClick={() => handleSpeedChange(SPEED_OPTIONS.MEDIUM)}
-            >
-              보통
-            </SpeedButton>
-            <SpeedButton 
-              active={slideshowSpeed === SPEED_OPTIONS.FAST} 
-              onClick={() => handleSpeedChange(SPEED_OPTIONS.FAST)}
-            >
-              빠름
-            </SpeedButton>
-          </div>
-        </SlideshowControls>
-        
-        <Timeline>
-          <TimelineLine />
-          {activities.map((activity, index) => (
-            <TimelinePoint 
-              key={index}
-              isCurrent={index === currentTimeIndex}
-              isStudent={activity.actionBy === CREATOR_TYPES.STUDENT}
-              onClick={() => handleTimelineChange(index)}
-            >
-              <TimelineTooltip>
-                {formatDate(activity.timestamp)}<br/>
-                {activity.actionBy === CREATOR_TYPES.STUDENT ? '학생' : 
-                 activity.actionBy === CREATOR_TYPES.AI ? 'AI' : '선생님'} 활동
-              </TimelineTooltip>
-            </TimelinePoint>
-          ))}
-        </Timeline>
-      </TimelineContainer>
-      
-      <TreeContent>
+        <TreeContent fullPage={fullPage}>
         <div className="tree">
           {/* Subject Node - Always visible */}
           {treeData.data && treeData.data.treeStructure && (
@@ -1093,46 +1226,133 @@ const StudentTreeProgress = ({ treeLogData, fullPage }) => {
           
           {/* We're not using separate connection lines to match learnflow-web implementation */}
         </div>
-      </TreeContent>
+        </TreeContent>
+      </div>
       
-      {/* Move statistics after the tree content with clear separation */}
-      <Statistics>
+      {/* Enhanced statistics section with better organization and visual elements */}
+      <Statistics fullPage={fullPage}>
         <StatTitle>통계</StatTitle>
         {statistics && (
-          <StatGrid>
-            <StatItem>
-              <StatLabel>총 노드 수</StatLabel>
-              <StatValue>{statistics.totalNodes}</StatValue>
-            </StatItem>
-            <StatItem>
-              <StatLabel>학생 노드</StatLabel>
-              <StatValue>{statistics.studentNodes}</StatValue>
-            </StatItem>
-            <StatItem>
-              <StatLabel>AI 노드</StatLabel>
-              <StatValue>{statistics.aiNodes}</StatValue>
-            </StatItem>
-            <StatItem>
-              <StatLabel>AI 상호작용</StatLabel>
-              <StatValue>{statistics.aiInteractions}</StatValue>
-            </StatItem>
-            <StatItem>
-              <StatLabel>총 근거 수</StatLabel>
-              <StatValue>{statistics.totalEvidences}</StatValue>
-            </StatItem>
-            <StatItem>
-              <StatLabel>학생 근거</StatLabel>
-              <StatValue>{statistics.studentEvidences}</StatValue>
-            </StatItem>
-            <StatItem>
-              <StatLabel>AI 근거</StatLabel>
-              <StatValue>{statistics.aiEvidences}</StatValue>
-            </StatItem>
-            <StatItem>
-              <StatLabel>총 활동 기간</StatLabel>
-              <StatValue>{statistics.totalDuration}</StatValue>
-            </StatItem>
-          </StatGrid>
+          <StatCategories>
+            {/* Node statistics section */}
+            <StatCategory>
+              <StatCategoryTitle>노드 통계</StatCategoryTitle>
+              <StatGrid>
+                <StatItem color="#3E935C">
+                  <StatLabel>총 노드 수</StatLabel>
+                  <StatValue>{statistics.totalNodes}</StatValue>
+                </StatItem>
+                <StatItem color="#6c757d">
+                  <StatLabel>학생 노드</StatLabel>
+                  <StatValue>{statistics.studentNodes}</StatValue>
+                </StatItem>
+                <StatItem color="#20c997">
+                  <StatLabel>AI 노드</StatLabel>
+                  <StatValue>{statistics.aiNodes}</StatValue>
+                </StatItem>
+              </StatGrid>
+              
+              {/* Node contribution visualization */}
+              {statistics.totalNodes > 0 && (
+                <>
+                  <ContributionBar>
+                    <StudentContribution 
+                      percentage={(statistics.studentNodes / statistics.totalNodes) * 100} 
+                    />
+                    <AIContribution 
+                      studentPercentage={(statistics.studentNodes / statistics.totalNodes) * 100}
+                      percentage={(statistics.aiNodes / statistics.totalNodes) * 100} 
+                    />
+                  </ContributionBar>
+                  <ContributionLegend>
+                    <LegendItem>
+                      <LegendColor color="#6c757d" />
+                      학생 {Math.round((statistics.studentNodes / statistics.totalNodes) * 100)}%
+                    </LegendItem>
+                    <LegendItem>
+                      <LegendColor color="#20c997" />
+                      AI {Math.round((statistics.aiNodes / statistics.totalNodes) * 100)}%
+                    </LegendItem>
+                  </ContributionLegend>
+                </>
+              )}
+            </StatCategory>
+            
+            {/* Evidence statistics section */}
+            <StatCategory>
+              <StatCategoryTitle>근거 통계</StatCategoryTitle>
+              <StatGrid>
+                <StatItem color="#385FA2">
+                  <StatLabel>총 근거 수</StatLabel>
+                  <StatValue>{statistics.totalEvidences}</StatValue>
+                </StatItem>
+                <StatItem color="#6c757d">
+                  <StatLabel>학생 근거</StatLabel>
+                  <StatValue>{statistics.studentEvidences}</StatValue>
+                </StatItem>
+                <StatItem color="#20c997">
+                  <StatLabel>AI 근거</StatLabel>
+                  <StatValue>{statistics.aiEvidences}</StatValue>
+                </StatItem>
+              </StatGrid>
+              
+              {/* Evidence contribution visualization */}
+              {statistics.totalEvidences > 0 && (
+                <>
+                  <ContributionBar>
+                    <StudentContribution 
+                      percentage={(statistics.studentEvidences / statistics.totalEvidences) * 100} 
+                    />
+                    <AIContribution 
+                      studentPercentage={(statistics.studentEvidences / statistics.totalEvidences) * 100}
+                      percentage={(statistics.aiEvidences / statistics.totalEvidences) * 100} 
+                    />
+                  </ContributionBar>
+                  <ContributionLegend>
+                    <LegendItem>
+                      <LegendColor color="#6c757d" />
+                      학생 {Math.round((statistics.studentEvidences / statistics.totalEvidences) * 100)}%
+                    </LegendItem>
+                    <LegendItem>
+                      <LegendColor color="#20c997" />
+                      AI {Math.round((statistics.aiEvidences / statistics.totalEvidences) * 100)}%
+                    </LegendItem>
+                  </ContributionLegend>
+                </>
+              )}
+            </StatCategory>
+            
+            {/* Activity statistics section */}
+            <StatCategory>
+              <StatCategoryTitle>활동 통계</StatCategoryTitle>
+              <StatGrid>
+                <StatItem color="#CC2A53">
+                  <StatLabel>AI 상호작용</StatLabel>
+                  <StatValue>{statistics.aiInteractions}</StatValue>
+                </StatItem>
+                <StatItem color="#212529">
+                  <StatLabel>총 활동 기간</StatLabel>
+                  <StatValue>{statistics.totalDuration}</StatValue>
+                </StatItem>
+              </StatGrid>
+            </StatCategory>
+            
+            {/* Summary section */}
+            <StatSummary>
+              <SummaryItem>
+                <SummaryLabel>노드 유형</SummaryLabel>
+                <SummaryValue color="#3E935C">주장 {statistics.argumentNodes || '-'}</SummaryValue>
+              </SummaryItem>
+              <SummaryItem>
+                <SummaryLabel>예상 반론</SummaryLabel>
+                <SummaryValue color="#CC2A53">{statistics.counterargumentNodes || '-'}</SummaryValue>
+              </SummaryItem>
+              <SummaryItem>
+                <SummaryLabel>예상 질문</SummaryLabel>
+                <SummaryValue color="#385FA2">{statistics.questionNodes || '-'}</SummaryValue>
+              </SummaryItem>
+            </StatSummary>
+          </StatCategories>
         )}
       </Statistics>
     </TreeContainer>
