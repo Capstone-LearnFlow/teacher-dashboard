@@ -383,7 +383,7 @@ const CreateAssignment = () => {
                   </FormGroup>
                   
                   <PhaseSection>
-                    <PhaseSectionTitle>주제 탐구 (Phase 2)</PhaseSectionTitle>
+                    <PhaseSectionTitle>주제 탐구</PhaseSectionTitle>
                     
                     <DateTimeGroup>
                       <DateInputGroup>
@@ -435,7 +435,7 @@ const CreateAssignment = () => {
                   </PhaseSection>
                   
                   <PhaseSection>
-                    <PhaseSectionTitle>팀별 토의 (Phase 3)</PhaseSectionTitle>
+                    <PhaseSectionTitle>팀별 토의</PhaseSectionTitle>
                     
                     <DateTimeGroup>
                       <DateInputGroup>

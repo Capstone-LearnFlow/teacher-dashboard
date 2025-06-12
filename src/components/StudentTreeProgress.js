@@ -102,6 +102,27 @@ const EvidenceText = styled.p`
   line-height: 1.4;
 `;
 
+const EvidenceSource = styled.div`
+  display: flex;
+  align-items: center;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e9ecef;
+  font-size: 0.75rem;
+  color: #6c757d;
+`;
+
+const EvidenceLink = styled.a`
+  color: #0066cc;
+  text-decoration: none;
+  margin-left: 0.25rem;
+  word-break: break-all;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 const ChatHistorySection = styled.div`
   flex: 1;
   display: flex;
@@ -909,6 +930,18 @@ const NodeDetailPanelComponent = ({
                   <EvidenceItem key={evidence.id}>
                     <EvidenceTitle>근거 {index + 1}</EvidenceTitle>
                     <EvidenceText>{evidence.content}</EvidenceText>
+                    {evidence.url && (
+                      <EvidenceSource>
+                        출처:
+                        <EvidenceLink 
+                          href={evidence.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                        >
+                          {evidence.url}
+                        </EvidenceLink>
+                      </EvidenceSource>
+                    )}
                   </EvidenceItem>
                 ))}
               </EvidenceList>
