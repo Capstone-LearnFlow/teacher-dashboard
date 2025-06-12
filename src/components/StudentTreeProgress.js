@@ -839,13 +839,13 @@ const QuestionNode = forwardRef(({ qNode, position, parentposition, nodeData, on
         <div className="tree__node__title">예상 질문</div>
         <div className="tree__node__content">{qNode.summary || qNode.content}</div>
       </div>
-      {qNode.answers && qNode.answers.length > 0 && (
+      {(qNode.children && qNode.children.length > 0) && (
         <div className="tree__node__children_container">
-          {qNode.answers.map((answer, i) => (
+          {qNode.children.map((child, i) => (
             <AnswerNode 
-              key={`answer-${answer.id}`}
+              key={`answer-${child.id}`}
               ref={childRefs.current[i]} 
-              content={answer.summary || answer.content} 
+              content={child.summary || child.content} 
             />
           ))}
         </div>
@@ -1135,7 +1135,7 @@ const StudentTreeProgress = ({ treeLogData, fullPage, showStatistics: initialSho
     };
   }, [isPlaying, currentTimeIndex, activities.length, slideshowSpeed]);
 
-  // Process tree log data
+    // Process tree log data
   useEffect(() => {
     if (!treeLogData) return;
     
@@ -1146,13 +1146,17 @@ const StudentTreeProgress = ({ treeLogData, fullPage, showStatistics: initialSho
     
     // For the new data structure, we need to create activities from the tree structure
     // by traversing the nodes and creating an activity for each node
-    const extractActivities = (node, parentId = null) => {
+    const extractActivities = (node, parentId = null, parentType = null) => {
       const activities = [];
       
       if (!node) return activities;
       
-      // Create an activity for the current node
-      if (node.id !== 0) { // Skip the root subject node for activities
+      // Skip adding answer nodes as separate activities when they're children of question nodes
+      // These are already rendered as part of the question node's children
+      const isAnswerToQuestion = parentType === 'QUESTION' && node.type === 'ANSWER';
+      
+      // Create an activity for the current node (unless it's an answer to a question)
+      if (node.id !== 0 && !isAnswerToQuestion) { // Skip the root subject node and answer nodes
         activities.push({
           node: {
             ...node,
@@ -1170,7 +1174,8 @@ const StudentTreeProgress = ({ treeLogData, fullPage, showStatistics: initialSho
       // Add activities for all children recursively
       if (node.children && node.children.length > 0) {
         node.children.forEach(child => {
-          activities.push(...extractActivities(child, node.id));
+          // Pass current node's type as parentType to children
+          activities.push(...extractActivities(child, node.id, node.type));
         });
       }
       
@@ -1181,7 +1186,7 @@ const StudentTreeProgress = ({ treeLogData, fullPage, showStatistics: initialSho
     let allActivities = [];
     if (treeData.data && treeData.data.treeStructure) {
       console.log("Extracting activities from tree structure:", treeData.data.treeStructure);
-      allActivities = extractActivities(treeData.data.treeStructure);
+      allActivities = extractActivities(treeData.data.treeStructure, null, null);
     }
     
     console.log("Extracted activities:", allActivities);
@@ -1266,9 +1271,39 @@ const StudentTreeProgress = ({ treeLogData, fullPage, showStatistics: initialSho
     // Create a map to store each node by ID for easy lookup
     const nodeMap = new Map();
     
-    // Second pass: create renderable nodes with proper connections
+    // Collect all answer contents to detect duplicates
+    // This set will store the content of all answer nodes
+    const answerContents = new Set();
+    
+    // Find all question nodes and collect their answer contents
+    visibleActivities.forEach((activity) => {
+      if (!activity.node || activity.node.hidden) return;
+      
+      // If this is a question node with children (answers)
+      if (activity.node.type === 'QUESTION' && activity.node.children && activity.node.children.length > 0) {
+        // Store the content of each answer
+        activity.node.children.forEach(answer => {
+          const answerContent = answer.summary || answer.content;
+          if (answerContent) {
+            answerContents.add(answerContent);
+          }
+        });
+      }
+    });
+    
+    console.log('Collected answer contents:', Array.from(answerContents));
+    
+    // Second pass: create renderable nodes with proper connections, filtering out duplicates
     visibleActivities.forEach((activity, index) => {
       if (!activity.node || activity.node.hidden) return;
+      
+      // Skip any node that has the same content as an answer node
+      // This prevents duplicates where an answer appears both under a question and as a separate node
+      const nodeContent = activity.node.summary || activity.node.content;
+      if (answerContents.has(nodeContent) && activity.node.type !== 'QUESTION') {
+        console.log('Skipping duplicate node with content matching an answer:', nodeContent);
+        return;
+      }
       
       // Determine parent evidence info for counterarguments
       let parentEvidenceInfo = null;
@@ -1388,16 +1423,16 @@ const StudentTreeProgress = ({ treeLogData, fullPage, showStatistics: initialSho
         depthYOffsets.set(depth, positionorigin.y);
       }
       
-      // Process nodes in order (breadth-first by depth)
-      const nodesByDepth = new Map();
-      renderableNodes.forEach(node => {
-        // Ensure proper depth assignment - all nodes of the same depth level should be in the same column
-        const depth = node.depth;
-        if (!nodesByDepth.has(depth)) {
-          nodesByDepth.set(depth, []);
-        }
-        nodesByDepth.get(depth).push(node);
-      });
+  // Process nodes in order (breadth-first by depth)
+  const nodesByDepth = new Map();
+  renderableNodes.forEach(node => {
+    // Ensure proper depth assignment - all nodes of the same depth level should be in the same column
+    const depth = node.depth;
+    if (!nodesByDepth.has(depth)) {
+      nodesByDepth.set(depth, []);
+    }
+    nodesByDepth.get(depth).push(node);
+  });
       
   // Special handling for first level nodes - position them directly below the subject
   if (nodesByDepth.has(1)) {
@@ -1705,11 +1740,23 @@ const StudentTreeProgress = ({ treeLogData, fullPage, showStatistics: initialSho
             let parentEvidencePosition = undefined;
             
             // Set parentEvidencePosition for all nodes including counterarguments with parent evidence
-            if (nodeData.parentNodeId && nodeData.parentNodeId !== 'subject' && nodeData.parentEvidenceIndex !== undefined) {
+            if (nodeData.parentNodeId && nodeData.parentNodeId !== 'subject') {
               const parentNode = renderableNodes.find(n => n.id === nodeData.parentNodeId);
               if (parentNode) {
                 const parentRef = getNodeRef(parentNode.id);
-                parentEvidencePosition = parentRef.current?.getEvidencePosition(nodeData.parentEvidenceIndex) || undefined;
+                
+                // If this node has a triggeredByEvidenceId, find the evidence in the parent node
+                if (nodeData.triggeredByEvidenceId) {
+                  // Find the index of the evidence in the parent's evidences array
+                  const evidenceIndex = parentNode.node.evidences?.findIndex(e => e.id === nodeData.triggeredByEvidenceId);
+                  if (evidenceIndex !== undefined && evidenceIndex >= 0) {
+                    parentEvidencePosition = parentRef.current?.getEvidencePosition(evidenceIndex) || undefined;
+                  }
+                } 
+                // Otherwise, if we have a parentEvidenceIndex, use that
+                else if (nodeData.parentEvidenceIndex !== undefined) {
+                  parentEvidencePosition = parentRef.current?.getEvidencePosition(nodeData.parentEvidenceIndex) || undefined;
+                }
               }
             }
             
