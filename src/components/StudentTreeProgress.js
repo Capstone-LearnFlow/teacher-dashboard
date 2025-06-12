@@ -116,7 +116,7 @@ const EvidenceLink = styled.a`
   color: #0066cc;
   text-decoration: none;
   margin-left: 0.25rem;
-  word-break: break-all;
+  font-weight: 500;
   
   &:hover {
     text-decoration: underline;
@@ -938,7 +938,7 @@ const NodeDetailPanelComponent = ({
                           target="_blank" 
                           rel="noopener noreferrer"
                         >
-                          {evidence.url}
+                          {`[${index + 1}]`}
                         </EvidenceLink>
                       </EvidenceSource>
                     )}
