@@ -960,7 +960,7 @@ const NodeDetailPanelComponent = ({
 };
 
 // Main StudentTreeProgress Component
-const StudentTreeProgress = ({ treeLogData, fullPage, showStatistics: initialShowStatistics = true, hideNodeTypesSection = false }) => {
+const StudentTreeProgress = ({ treeLogData, fullPage, showStatistics: initialShowStatistics = false, hideNodeTypesSection = false }) => {
   const [currentTimeIndex, setCurrentTimeIndex] = useState(0);
   const [activities, setActivities] = useState([]);
   const [renderableNodes, setRenderableNodes] = useState([]);
@@ -974,7 +974,7 @@ const StudentTreeProgress = ({ treeLogData, fullPage, showStatistics: initialSho
   const [chatMessages, setChatMessages] = useState([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   
-  // Internal state for statistics visibility
+  // Internal state for statistics visibility - initialize as false by default
   const [internalShowStatistics, setInternalShowStatistics] = useState(initialShowStatistics);
   
   // Combine prop and internal state for determining if statistics should be shown
@@ -1135,7 +1135,7 @@ const StudentTreeProgress = ({ treeLogData, fullPage, showStatistics: initialSho
     };
   }, [isPlaying, currentTimeIndex, activities.length, slideshowSpeed]);
 
-    // Process tree log data
+  // Process tree log data
   useEffect(() => {
     if (!treeLogData) return;
     
@@ -1200,9 +1200,9 @@ const StudentTreeProgress = ({ treeLogData, fullPage, showStatistics: initialSho
     setActivities(sortedActivities);
     
     if (sortedActivities.length > 0) {
-      // Initially set to last activity (to see the final state), 
-      // but the auto-start effect will reset to beginning
-      setCurrentTimeIndex(sortedActivities.length - 1);
+      // Initially set to first activity instead of last activity
+      // This way we start from the beginning rather than showing the final state
+      setCurrentTimeIndex(0);
     }
   }, [treeLogData]);
   
@@ -1213,13 +1213,12 @@ const StudentTreeProgress = ({ treeLogData, fullPage, showStatistics: initialSho
     if (activities.length > 0 && !autoStartRef.current) {
       autoStartRef.current = true;
       
-      // Set a short delay before starting to ensure the tree is properly rendered
-      const timer = setTimeout(() => {
-        setCurrentTimeIndex(0); // Start from the first step
-        setIsPlaying(true);     // Begin auto-playing
-      }, 1000); // 1 second delay for better user experience
+      // Start the animation immediately when the page loads
+      setCurrentTimeIndex(0); // Ensure we start from the first step
+      setIsPlaying(true);     // Begin auto-playing immediately
       
-      return () => clearTimeout(timer);
+      // Do not automatically show statistics window
+      // Keep it disabled by default as requested
     }
   }, [activities]);
   
