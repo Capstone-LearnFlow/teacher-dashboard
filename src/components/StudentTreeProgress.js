@@ -831,7 +831,7 @@ const QuestionNode = forwardRef(({ qNode, position, parentposition, nodeData, on
           className="tree__node__link" 
           style={{ 
             height: `${parentposition ? Math.abs(parentposition.y - position.y) : 60}px`,
-            backgroundColor: '#CC2A53' // Use red for question nodes
+            backgroundColor: '#385FA2' // Use standard blue for question nodes to match with app's blue color
           }}
         ></div>
       )}
